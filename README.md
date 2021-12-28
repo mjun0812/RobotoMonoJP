@@ -10,6 +10,8 @@ Nerd Font Patcherを適用したものです．
 `Roboto Mono JP` is merged Roboto Mono, IBM Plex Sans JP and Nerd Font.  
 Fonts included in the package are subject to the license terms of the distributor.
 
+Download: https://github.com/mjun0812/RobotoMonoJP/releases
+
 ## References
 
 - [SF Mono を使って最高のプログラミング用フォントを作った話 - Qiita](https://qiita.com/delphinus/items/f472eb04ff91daf44274)
