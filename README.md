@@ -18,3 +18,4 @@ Download: https://github.com/mjun0812/RobotoMonoJP/releases
 - [yanoasis/nerd-fonts](https://github.com/ryanoasis/nerd-fonts)
 - [IBM/plex](https://github.com/IBM/plex)
 - [Google Fonts](https://fonts.google.com/specimen/Roboto+Mono)
+- [RobotoMonoに日本語を合成したフォントを作りました](https://note.mjunya.com/posts/2021-12-28-roboto-mono-jp/)
