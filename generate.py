@@ -154,7 +154,7 @@ def main():
     font.mergeFonts("./MonoFont/RobotoMono-Regular.ttf")
 
     os.makedirs("tmp", exist_ok=True)
-    modify_plex("./JPFont/IBMPlexSansJP-Regular.otf")
+    modify_plex("./JPFont/IBMPlexSansJP-Regular.ttf")
     font.mergeFonts("./tmp/tmp.otf")
 
     font.autoHint()
