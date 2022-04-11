@@ -21,6 +21,7 @@ fontforgeのPythonスクリプト機能を使うには、systemにインスト�
 ```bash
 git clone https://github.com/mjun0812/RobotoMonoJP.git
 cd RobotoMonoJP
+python generate.py
 ```
 
 ## References
