@@ -12,6 +12,17 @@ Fonts included in the package are subject to the license terms of the distributo
 
 Download: https://github.com/mjun0812/RobotoMonoJP/releases
 
+## Build
+
+required: fontforge, python
+
+fontforgeのPythonスクリプト機能を使うには、systemにインストールされたPythonを使う必要があります。
+
+```bash
+git clone https://github.com/mjun0812/RobotoMonoJP.git
+cd RobotoMonoJP
+```
+
 ## References
 
 - [SF Mono を使って最高のプログラミング用フォントを作った話 - Qiita](https://qiita.com/delphinus/items/f472eb04ff91daf44274)
