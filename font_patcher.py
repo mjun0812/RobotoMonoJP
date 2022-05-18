@@ -2,6 +2,7 @@
 
 import fontforge
 import psMat
+import os
 
 # Define the character ranges
 # Symbol font ranges
@@ -166,15 +167,9 @@ PATCH_SET = [
 ]
 
 
-def patch(in_file, out_dir):
-    font = fontforge.open(in_file)
+def patch(font):
     _patch(font)
-    out_file = in_file.split(".")[:-1]
-    out_file = "".join(".")
-    print(f"Generated {out_file}")
-    font.generate(out_file + ".otf", flags=("opentype"))
-    font.generate(out_file + ".ttf")
-    return 0
+    return font
 
 
 def _patch(font):

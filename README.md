@@ -31,3 +31,4 @@ python generate.py
 - [IBM/plex](https://github.com/IBM/plex)
 - [Google Fonts](https://fonts.google.com/specimen/Roboto+Mono)
 - [RobotoMonoに日本語を合成したフォントを作りました](https://note.mjunya.com/posts/2021-12-28-roboto-mono-jp/)
+- [プログラミング用フォント Utatane](https://github.com/nv-h/Utatane/blob/master/utatane.py)
