@@ -45,6 +45,8 @@ UNDERLINE_POS = -200
 UNDERLINE_HEIGHT = 100
 WIDTH = 1299
 
+# 余白をもたせる
+# 上の値はグリフギリギリを設定して，こちらでは大きい値を設定する
 OS2_ASCENT = 2146
 OS2_DESCENT = 555
 
@@ -167,7 +169,8 @@ def get_base_font():
 
 def modify_plex(font_path):
     OLD_JP_ASCENT = 880
-    SCALE = ASCENT / OLD_JP_ASCENT
+    SCALE = ASCENT / OLD_JP_ASCENT + 0.10
+    print(f"JP Font convert scale: {SCALE}")
 
     WIDTH_TLANSLATION = -50
     HEIGHT_TLANSLATION = 0
@@ -183,7 +186,7 @@ def modify_plex(font_path):
     # 文字を全体的にスケール変換(SCALEを要調整)
     font.selection.all()
     for glyph in font.glyphs():
-        # 不要っぽいやつは消しちゃう
+        # 削除すべきglyphは消す
         if not glyph.isWorthOutputting:
             font.selection.select(glyph)
             font.clear()
