@@ -43,7 +43,11 @@ DESCENT = 410
 EM = ASCENT + DESCENT
 UNDERLINE_POS = -200
 UNDERLINE_HEIGHT = 100
-WIDTH = 1229
+WIDTH = 1299
+
+OS2_ASCENT = 2146
+OS2_DESCENT = 555
+
 
 ENCODING = "UnicodeFull"
 ME = "Junya Morioka"
@@ -138,22 +142,22 @@ def get_base_font():
     )
 
     # winascent & windescent is for setting the line height for Windows.
-    font.os2_winascent = ASCENT
-    font.os2_windescent = DESCENT
+    font.os2_winascent = OS2_ASCENT
+    font.os2_windescent = OS2_DESCENT
     font.os2_winascent_add = 0
     font.os2_windescent_add = 0
 
     # hhea_ascent, hhea_descent is the macOS version for winascent & windescent.
-    font.hhea_ascent = ASCENT
-    font.hhea_descent = -DESCENT
+    font.hhea_ascent = OS2_ASCENT
+    font.hhea_descent = -OS2_DESCENT
     font.hhea_ascent_add = 0
     font.hhea_descent_add = 0
     # linegap is for gap between lines.
     font.hhea_linegap = 0
 
     # typoascent, typodescent is generic version for above.
-    font.os2_typoascent = ASCENT
-    font.os2_typodescent = -DESCENT
+    font.os2_typoascent = OS2_ASCENT
+    font.os2_typodescent = -OS2_DESCENT
     font.os2_typoascent_add = 0
     font.os2_typodescent_add = 0
     font.os2_typolinegap = 0
@@ -165,7 +169,6 @@ def modify_plex(font_path):
     OLD_JP_ASCENT = 880
     SCALE = ASCENT / OLD_JP_ASCENT
 
-    # WIDTH_TLANSLATION = -100
     WIDTH_TLANSLATION = -50
     HEIGHT_TLANSLATION = 0
 
@@ -186,7 +189,6 @@ def modify_plex(font_path):
             font.clear()
             break
 
-        # 縮小すると左に寄るので，縮小後に右にずらす
         glyph.transform(psMat.scale(SCALE, SCALE))
         glyph.transform(psMat.translate(WIDTH_TLANSLATION, HEIGHT_TLANSLATION))
 
