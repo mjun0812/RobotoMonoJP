@@ -27,6 +27,8 @@ FULLWIDTH_CODES = (
     + FULLWIDTH_CJK_COMPATI_SUPP
 )
 
+LIGA=list(range(0xFB00, 0xFB05))
+
 FAMILY = "RobotoMono"
 FAMILY_SUFFIX = "JP Nerd"
 FULLNAME = f"{FAMILY} {FAMILY_SUFFIX}"
@@ -190,7 +192,7 @@ def modify_plex(font_path):
         if not glyph.isWorthOutputting:
             font.selection.select(glyph)
             font.clear()
-            break
+            continue
 
         glyph.transform(psMat.scale(SCALE, SCALE))
         glyph.transform(psMat.translate(WIDTH_TLANSLATION, HEIGHT_TLANSLATION))
@@ -228,10 +230,15 @@ def main():
     font.autoInstr()
     font.selection.none()
 
+
     font.generate("./tmp/RobotoMonoJP-Regular.ttf")
 
     font = patch(font)
     out_path = "./RobotoMonoJP/RobotoMonoJP-Regular"
+    for glyph in font.glyphs():
+        if glyph.encoding in LIGA:
+            font.selection.select(glyph)
+            font.clear()
     font.generate(out_path + ".otf", flags=("opentype"))
     font.generate(out_path + ".ttf")
     print_pdf(font, "./tmp/output.pdf")
