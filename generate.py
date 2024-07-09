@@ -1,7 +1,8 @@
-import fontforge
-from datetime import datetime
-import psMat
 import os
+from datetime import datetime
+
+import fontforge
+import psMat
 
 from font_patcher import patch
 
@@ -27,13 +28,13 @@ FULLWIDTH_CODES = (
     + FULLWIDTH_CJK_COMPATI_SUPP
 )
 
-LIGA=list(range(0xFB00, 0xFB05))
+LIGA = list(range(0xFB00, 0xFB05))
 
 FAMILY = "RobotoMono"
 FAMILY_SUFFIX = "JP Nerd"
 FULLNAME = f"{FAMILY} {FAMILY_SUFFIX}"
 FILENAME = FULLNAME.replace(" ", "")
-VERSION = "3.0"
+VERSION = "4.0"
 
 # ### 斜体 ###
 ITALIC = "Italic"
@@ -230,7 +231,6 @@ def main():
     font.autoInstr()
     font.selection.none()
 
-
     font.generate("./tmp/RobotoMonoJP-Regular.ttf")
 
     font = patch(font)
@@ -239,6 +239,14 @@ def main():
         if glyph.encoding in LIGA:
             font.selection.select(glyph)
             font.clear()
+    for glyph in font.glyphs():
+        if any(
+            feature in glyph.getPosSub("*")
+            for feature in ["liga", "dlig", "clig", "hlig", "calt"]
+        ):
+            font.selection.select(("more",), glyph.encoding)
+    font.clear()
+
     font.generate(out_path + ".otf", flags=("opentype"))
     font.generate(out_path + ".ttf")
     print_pdf(font, "./tmp/output.pdf")
