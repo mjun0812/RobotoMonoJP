@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t robotomonojp .
+
+      - name: Sync Python dependencies
+        run: |
+          docker run --rm -v "$PWD:/app" robotomonojp uv venv --clear --system-site-packages
+          docker run --rm -v "$PWD:/app" robotomonojp uv sync --locked
+
+      - name: Check Python style
+        run: |
+          docker run --rm -v "$PWD:/app" robotomonojp uv run ruff format --check main.py main_mono.py src tools fontforge.pyi psMat.pyi
+          docker run --rm -v "$PWD:/app" robotomonojp uv run ruff check main.py main_mono.py src tools fontforge.pyi psMat.pyi
+          docker run --rm -v "$PWD:/app" robotomonojp uv run ty check main.py main_mono.py src/params.py src/properties.py src/utils.py tools/check_font_metrics.py
+
+      - name: Generate fonts
+        run: |
+          docker run --rm -v "$PWD:/app" robotomonojp uv run python main.py
+          docker run --rm -v "$PWD:/app" robotomonojp uv run python main_mono.py
+
+      - name: Check font metrics
+        run: docker run --rm -v "$PWD:/app" robotomonojp uv run python tools/check_font_metrics.py

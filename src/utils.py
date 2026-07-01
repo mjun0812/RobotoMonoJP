@@ -1,5 +1,4 @@
 import math
-from typing import Optional
 
 import fontforge
 import psMat
@@ -7,8 +6,8 @@ import psMat
 
 def clear_font_glyph(
     font: fontforge.font,
-    start: Optional[int] = None,
-    end: Optional[int] = None,
+    start: int | str | None = None,
+    end: int | None = None,
 ) -> None:
     if end is None:
         font.selection.select(start)
@@ -24,7 +23,18 @@ def print_pdf(font, path):
 
 
 def resize_glyph_width(glyph, new_width: int) -> None:
+    """Resize a glyph horizontally and set its advance width.
+
+    Args:
+        glyph: FontForge glyph to resize.
+        new_width: Target advance width.
+    """
     old_width = glyph.width
+    if old_width == new_width:
+        return
+    if old_width == 0:
+        glyph.width = new_width
+        return
     mat = psMat.scale(float(new_width) / old_width, 1)
     glyph.transform(mat)
     glyph.width = new_width
@@ -43,8 +53,8 @@ def resize_all_glyph_width(font, new_width: int) -> None:
 def resize_all_scale(
     font: fontforge.font,
     scale: float,
-    translate_x: Optional[float] = None,
-    translate_y: Optional[float] = None,
+    translate_x: float | None = None,
+    translate_y: float | None = None,
 ) -> None:
     em = font.em
     x_to_center = em * (1 - scale) / 2

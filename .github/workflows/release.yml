@@ -1,0 +1,62 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate tag
+        run: |
+          if [[ ! "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Release tag must be Semantic Versioning format such as v1.2.3"
+            exit 1
+          fi
+
+      - name: Build Docker image
+        run: docker build -t robotomonojp .
+
+      - name: Sync Python dependencies
+        run: |
+          docker run --rm -v "$PWD:/app" robotomonojp uv venv --clear --system-site-packages
+          docker run --rm -v "$PWD:/app" robotomonojp uv sync --locked
+
+      - name: Generate fonts
+        run: |
+          docker run --rm -v "$PWD:/app" robotomonojp uv run python main.py
+          docker run --rm -v "$PWD:/app" robotomonojp uv run python main_mono.py
+
+      - name: Check font metrics
+        run: docker run --rm -v "$PWD:/app" robotomonojp uv run python tools/check_font_metrics.py
+
+      - name: Package fonts
+        run: |
+          archive="RobotoMonoJP-${GITHUB_REF_NAME}.zip"
+          zip -j "$archive" RobotoMonoJP/*.ttf RobotoMonoJP-Mono/*.ttf
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: RobotoMonoJP-${{ github.ref_name }}
+          path: RobotoMonoJP-${{ github.ref_name }}.zip
+
+      - name: Publish GitHub release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          archive="RobotoMonoJP-${GITHUB_REF_NAME}.zip"
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "$archive" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" "$archive" --title "$GITHUB_REF_NAME" --generate-notes
+          fi

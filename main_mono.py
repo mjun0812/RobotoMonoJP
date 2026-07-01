@@ -155,13 +155,10 @@ def get_jp_font(path: str) -> fontforge.font:
     clear_font_glyph(font, *PARAMS.ALPHABET)
     clear_font_glyph(font, *PARAMS.OTHER_GLYPHS)
     clear_font_glyph(font, 0x20AC)  # €
-    clear_font_glyph(font, 0x2190, 0x21F5)  # arrow
-    clear_font_glyph(font, 0x2200, 0x22A5)  # math symbol
     clear_font_glyph(font, 0x2116)  # №
     clear_font_glyph(font, 0x2122)  # ™
     clear_font_glyph(font, 0x23A7, 0x23AD)  # curly bracket
     clear_font_glyph(font, 0x2500, 0x2595)  # border symbol
-    clear_font_glyph(font, 0x25A0, 0x25EF)  # block symbol
 
     set_font_em(font, PROPERTY.ASCENT, PROPERTY.DESCENT, PROPERTY.EM)
 
@@ -226,6 +223,22 @@ def get_en_font(path: str) -> fontforge.font:
     return font
 
 
+def normalize_mono_widths(font: fontforge.font) -> None:
+    """Normalize generated glyphs to terminal cell widths.
+
+    Args:
+        font: FontForge font to normalize.
+    """
+    for glyph in font.glyphs():
+        code = glyph.unicode
+        if code == -1 or not glyph.isWorthOutputting:
+            continue
+        if PARAMS.in_ranges(code, PARAMS.MONO_NARROW_CODE_RANGES):
+            resize_glyph_width(glyph, PROPERTY.EM // 2)
+        elif PARAMS.in_ranges(code, PARAMS.MONO_WIDE_CODE_RANGES):
+            resize_glyph_width(glyph, PROPERTY.EM)
+
+
 def main():
     args = arg_parse()
     os.makedirs("tmp", exist_ok=True)
@@ -280,6 +293,7 @@ def main():
         fix_all_glyph_points(base_font, addExtrema=True)
 
     _patch(base_font)
+    normalize_mono_widths(base_font)
     os.makedirs(PROPERTY.FAMILYNAME, exist_ok=True)
     base_font.generate(f"{PROPERTY.FAMILYNAME}/{PROPERTY.FAMILYNAME}-{args.style}.ttf")
     base_font.close()

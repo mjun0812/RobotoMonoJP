@@ -22,9 +22,9 @@ Copyright (c) 2014, Ryan L McIntyre
 Copyright (c) 2021 Junya Morioka
 """
 
-VERSION = "5.0.0"
-ENCODING = "UnicodeFull"
-FAMILYNAME = "RobotoMonoJP"
+VERSION: str = "5.0.0"
+ENCODING: str = "UnicodeFull"
+FAMILYNAME: str = "RobotoMonoJP"
 
 # ### サイズ関係 ###
 ASCENT = 1638  # 上方向の最大値

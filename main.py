@@ -7,7 +7,7 @@ import psMat
 import src.params as PARAMS
 import src.properties as PROPERTY
 from src.font_patcher import _patch
-from src.utils import clear_font_glyph
+from src.utils import clear_font_glyph, resize_glyph_width
 
 # ### サイズ関係 ###
 WIDTH = 1299
@@ -126,10 +126,11 @@ def modify_plex(font_path):
 
         glyph.transform(psMat.scale(SCALE, SCALE))
 
-        if glyph.encoding in PARAMS.HANKAKU_KANA:
-            # 半角カナは半角へ
-            glyph.width = WIDTH
-        elif glyph.encoding in PARAMS.FULLWIDTH_CODES_LIST:
+        code = glyph.encoding
+        if PARAMS.in_ranges(code, PARAMS.REGULAR_NARROW_CODE_RANGES):
+            # 半角カナと曖昧幅記号は半角へ
+            resize_glyph_width(glyph, WIDTH)
+        elif PARAMS.in_ranges(code, PARAMS.FULLWIDTH_CODE_RANGES):
             # 全角文字は全角へ
             glyph.width = WIDTH + 550
 
@@ -155,6 +156,22 @@ def modify_plex(font_path):
 
     font.generate("./tmp/jp_tmp.ttf")
     font.close()
+
+
+def normalize_regular_widths(font: fontforge.font) -> None:
+    """Normalize ambiguous symbols added after patching.
+
+    Args:
+        font: FontForge font to normalize.
+    """
+    for glyph in font.glyphs():
+        code = glyph.unicode
+        if code == -1 or not glyph.isWorthOutputting:
+            continue
+        if PARAMS.in_ranges(code, PARAMS.REGULAR_NARROW_CODE_RANGES):
+            resize_glyph_width(glyph, WIDTH)
+        elif PARAMS.in_ranges(code, PARAMS.FULLWIDTH_CODE_RANGES):
+            glyph.width = WIDTH + 550
 
 
 def main():
@@ -186,6 +203,7 @@ def main():
     font.selection.none()
 
     _patch(font)
+    normalize_regular_widths(font)
     font.generate("./RobotoMonoJP/RobotoMonoJP-Regular.ttf")
     font.close()
 
