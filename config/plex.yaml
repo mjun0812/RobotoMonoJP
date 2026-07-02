@@ -11,8 +11,8 @@ fonts:
     regular: fonts/RobotoMono/RobotoMono-Regular.ttf
     bold: fonts/RobotoMono/RobotoMono-Bold.ttf
   jp:
-    regular: old/src/fonts/IBMPlexSansJP/IBMPlexSansJP-Regular.ttf
-    bold: old/src/fonts/IBMPlexSansJP/IBMPlexSansJP-Bold.ttf
+    regular: fonts/IBMPlexSansJP/IBMPlexSansJP-Regular.ttf
+    bold: fonts/IBMPlexSansJP/IBMPlexSansJP-Bold.ttf
 
 italic_angle: -11
 

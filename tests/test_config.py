@@ -94,3 +94,15 @@ def test_load_config_from_yaml(tmp_path: Path) -> None:
     p.write_text(yaml.safe_dump(VALID_MINIMAL), encoding="utf-8")
     cfg = load_config(p)
     assert cfg.jp_identifier == "Plex"
+
+
+def test_plex_config_font_paths_exist() -> None:
+    cfg = load_config(Path("config/plex.yaml"))
+    paths = [
+        cfg.fonts.en.regular,
+        cfg.fonts.en.bold,
+        cfg.fonts.jp.regular,
+        cfg.fonts.jp.bold,
+    ]
+    for path in paths:
+        assert path.exists(), f"{path} should exist"

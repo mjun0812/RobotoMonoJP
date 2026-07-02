@@ -19,7 +19,7 @@ submodule-init:
 	git submodule update --init --no-fetch --checkout vendor/nerd-fonts || \
 		git submodule update --init --checkout vendor/nerd-fonts
 	cd vendor/nerd-fonts && \
-		git sparse-checkout set --skip-checks font-patcher src/glyphs bin/scripts/name-parser
+		git sparse-checkout set --skip-checks font-patcher src/glyphs bin/scripts/name_parser bin/scripts/braille
 
 .PHONY: docker-build
 docker-build:
