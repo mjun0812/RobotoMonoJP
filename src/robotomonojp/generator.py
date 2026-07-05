@@ -19,7 +19,6 @@ from .fontforge_helpers import (
     make_italic,
     remove_glyphs_with_features,
     remove_lookups,
-    remove_vertical_variants,
     resize_all_glyph_width,
     resize_all_scale,
     resize_glyph_width,
@@ -137,7 +136,6 @@ def _load_jp_font(path: Path, variant_cfg: VariantConfig) -> Any:
         gpos_prefixes=params.GPOS_LOOKUP_PREFIXES,
     )
 
-    remove_vertical_variants(font)
     clear_font_glyph(font, params.LIGATURE[0], params.LIGATURE[1])
 
     for start, end in params.JP_CLEAR_RANGES:

@@ -85,12 +85,8 @@ JP_KEEP_FULLWIDTH_GLYPHS: list[str] = [
     "uni51F0",
 ]
 
-# 削除対象の GSUB lookup prefix.
-GSUB_LOOKUP_PREFIXES: tuple[str, ...] = (
-    "'vert'",
-    "'vrt2'",
-    "'liga'",
-)
+# 削除対象の GSUB lookup prefix. 縦書き feature (vert/vrt2) は残す.
+GSUB_LOOKUP_PREFIXES: tuple[str, ...] = ("'liga'",)
 
 # 削除対象の GPOS lookup prefix.
 GPOS_LOOKUP_PREFIXES: tuple[str, ...] = (

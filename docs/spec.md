@@ -150,7 +150,7 @@ variants: # 必須
 
 ## Font生成パイプライン
 
-1. JP前処理: 縦書きlookup (`vert`/`vrt2`)、リガチャlookup、カーニングlookup (`kern`/`halt`/`vhal`/`palt`/`vpal`/`vkrn`) を削除する。ASCII、数字、矢印、罫線、ブロック、通貨、単位系など旧 `main_mono.py` で削除しているUnicodeレンジをハードコードで消し、EN側で埋める。
+1. JP前処理: 縦書きlookup (`vert`/`vrt2`) と縦書きvariant glyphは残し、リガチャlookup、カーニングlookup (`kern`/`halt`/`vhal`/`palt`/`vpal`/`vkrn`) を削除する。ASCII、数字、矢印、罫線、ブロック、通貨、単位系など旧 `main_mono.py` で削除しているUnicodeレンジをハードコードで消し、EN側で埋める。
 2. JPスケール適用: `jp_scale` 倍に拡縮し、glyph幅を `en_width` / `jp_width` に合わせる。
 3. Merge: 新規空フォントに EN → JP の順で `mergeFonts` する。
 4. Italic生成: `Italic` / `BoldItalic` の場合は Regular / Bold から `italic_angle` で skew する (EN/JPとも)。
