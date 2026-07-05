@@ -2,45 +2,39 @@
 
 RobotoMono、日本語Font、Nerd Fontを合成したフォントを生成する。
 
-## Variants
+## 生成フォント
 
-2つのvariantを提供する。
+1つのconfigから1つのfamilyを生成する。
 
-- proportional variant
-  - RobotoMono由来の `WIDTH=1299`を維持。
-  - 半角=1299、全角=1849 (1.42:1)。
-  - 日本語の見た目重視、緩めの等幅。
-- mono variant
-  - 全角:半角 = 2:1 の等幅グリッド (`em=2048`, EN幅=1024, JP幅=2048)。
-  - JP側を`0.9`倍に縮小してグリッドに合わせる。
-  - Terminal・エディタで崩れない用途向け。
+- RobotoMono由来の `WIDTH=1299` を維持。
+- 半角=1299、全角=1849 (1.42:1)。
+- 日本語の見た目重視、緩めの等幅。
 
-各variantに `Regular` / `Bold` / `Italic` / `BoldItalic` の4スタイルを持つ。
-合計で 2 variant × 4 style × (ttf, otf) = 16ファイル。
+`Regular` / `Bold` / `Italic` / `BoldItalic` の4スタイルを持つ。
+合計で 4 style × (ttf, otf) = 8ファイル。
 
 ## 命名規則
 
 JP Fontを差し替え可能にするため、`familyname` は `jp_identifier` から機械的に組み立てる。
 
-- proportional: `RobotoMono{jp_identifier}`
-- mono: `RobotoMono{jp_identifier}-Mono`
+- `RobotoMono{jp_identifier}`
 
 例:
 
-| jp_identifier | proportional       | mono                    |
-| ------------- | ------------------ | ----------------------- |
-| `Plex`        | `RobotoMonoPlex`   | `RobotoMonoPlex-Mono`   |
-| `Noto`        | `RobotoMonoNoto`   | `RobotoMonoNoto-Mono`   |
-| `Sarasa`      | `RobotoMonoSarasa` | `RobotoMonoSarasa-Mono` |
+| jp_identifier | familyname         |
+| ------------- | ------------------ |
+| `Plex`        | `RobotoMonoPlex`   |
+| `Noto`        | `RobotoMonoNoto`   |
+| `Sarasa`      | `RobotoMonoSarasa` |
 
 `jp_identifier` は `config.yaml` トップレベルに必須フィールドとして持ち、以下のバリデーションを課す。
 
 - PascalCase (先頭大文字、以降 `[A-Za-z0-9]`)。
 - ASCII英数字のみ。
 - 1〜16文字。
-- `"Mono"` との完全一致は禁止 (variant suffixと衝突するため)。
+- `"Mono"` との完全一致は禁止 (予約)。
 
-`config.yaml` の `variants.{v}.familyname` を明示指定すると上記ルールを上書きできる。
+`config.yaml` の `familyname` を明示指定すると上記ルールを上書きできる。
 
 旧 `RobotoMonoJP` / `RobotoMonoJP-Mono` からはリネームとなる (breaking change、major bump)。
 
@@ -63,18 +57,17 @@ DockerとリポジトリのマウントはMakefileで抽象化する。
 
 ### generate
 
-Font作成endpoint。1回の呼び出しで16ファイルを一括生成する。
+Font作成endpoint。1回の呼び出しで8ファイルを一括生成する。
 
 ```bash
 python -m robotomonojp generate -c config.yaml
-python -m robotomonojp generate -c config.yaml -o dist/ --variant mono --style Regular
+python -m robotomonojp generate -c config.yaml -o dist/ --style Regular
 ```
 
 CLIフラグ (基本):
 
 - `-c` / `--config PATH` (必須): config.yamlへのpath。
 - `-o` / `--output DIR`: 出力先ディレクトリ。デフォルト `dist/`。
-- `--variant [mono|proportional|all]`: 生成対象variant。デフォルト `all`。
 - `--style STYLE`: 生成対象style。複数指定可。デフォルト4種すべて。
 
 CLIフラグ (拡張):
@@ -99,7 +92,7 @@ python -m robotomonojp print <font-path> "string" --output <output path>
 
 ## config.yaml
 
-共通sectionとvariant別sectionを持つ。
+トップレベルにメタデータとメトリクスをフラットに持つ。
 
 ```yaml
 jp_identifier: Plex # 必須。命名規則の識別子。
@@ -116,50 +109,35 @@ fonts: # 必須
     regular: path/to/JP-Regular.ttf
     bold: path/to/JP-Bold.ttf
 
-italic_angle: -11 # 共通、任意 (デフォルト -11)
+italic_angle: -11 # 任意 (デフォルト -11)
 
-variants: # 必須
-  proportional:
-    # familyname 未指定なら `RobotoMono{jp_identifier}` = "RobotoMonoPlex"
-    ascent: 1638
-    descent: 410
-    em: 2048
-    en_width: 1299
-    jp_width: 1849
-    jp_scale: 1.10
-    underline_pos: -200
-    underline_height: 100
-    os2_ascent: 2146
-    os2_descent: 555
-
-  mono:
-    # familyname 未指定なら `RobotoMono{jp_identifier}-Mono` = "RobotoMonoPlex-Mono"
-    ascent: 1638
-    descent: 410
-    em: 2048
-    en_width: 1024
-    jp_width: 2048
-    jp_scale: 0.9
-    underline_pos: -200
-    underline_height: 100
-    os2_ascent: 1638
-    os2_descent: 410
+# familyname 未指定なら `RobotoMono{jp_identifier}` = "RobotoMonoPlex"
+ascent: 1638
+descent: 410
+em: 2048
+en_width: 1299
+jp_width: 1849
+jp_scale_offset: 0.10
+underline_pos: -200
+underline_height: 100
+os2_ascent: 2146
+os2_descent: 555
 ```
 
 パーサは pydantic v2 でバリデーションする。
 
 ## Font生成パイプライン
 
-1. JP前処理: 縦書きlookup (`vert`/`vrt2`) と縦書きvariant glyphは残し、リガチャlookup、カーニングlookup (`kern`/`halt`/`vhal`/`palt`/`vpal`/`vkrn`) を削除する。ASCII、数字、矢印、罫線、ブロック、通貨、単位系など旧 `main_mono.py` で削除しているUnicodeレンジをハードコードで消し、EN側で埋める。
-2. JPスケール適用: `jp_scale` 倍に拡縮し、glyph幅を `en_width` / `jp_width` に合わせる。
-3. Merge: 新規空フォントに EN → JP の順で `mergeFonts` する。
+1. EN読み込み: RobotoMonoを開き、encoding以外は変更しない (旧 `main.py` と同じ)。
+2. JPスケール適用: 旧 `main.py` と同じく `ascent / 元JPフォントのascent + jp_scale_offset` 倍に拡縮し、半角カナ幅を `en_width`、全角幅を `jp_width` に合わせる。
+3. Merge: 新規空フォントに EN → JP の順で `mergeFonts` する (同名glyphはEN側を優先)。
 4. Italic生成: `Italic` / `BoldItalic` の場合は Regular / Bold から `italic_angle` で skew する (EN/JPとも)。
-5. リガチャ削除: 最終フォントから `liga` / `dlig` / `clig` / `hlig` / `calt` feature を持つglyphを削除する。
-6. Nerd Font patch: submodule内の `font-patcher` を subprocessで呼び出し、`--complete` を適用する (両variantとも)。
+5. リガチャ削除: 最終フォントから `liga` / `dlig` / `clig` / `hlig` / `calt` feature を持つglyphと `U+FB00-FB4F` を削除する。
+6. Nerd Font patch: submodule内の `font-patcher` を subprocessで呼び出し、`--complete` を適用する。
 
 ## Metadata
 
-- `familyname`: 命名規則 (`RobotoMono{jp_identifier}` / `RobotoMono{jp_identifier}-Mono`) から自動生成する。`config.yaml` の `variants.{v}.familyname` で明示指定して上書き可能。
+- `familyname`: 命名規則 (`RobotoMono{jp_identifier}`) から自動生成する。`config.yaml` の `familyname` で明示指定して上書き可能。
 - `copyright`: デフォルトはハードコード、`config.yaml` で上書き可能。
 - `version`: `pyproject.toml` の `project.version` を単一のsource of truthとし、SFNT versionに埋め込む。
 
@@ -186,7 +164,7 @@ GitHub Actionsで並列jobを走らせる。
 1. jobの先頭で `pyproject.toml` の version と tag名 (先頭 `v` を除いたもの) の一致を確認する。不一致ならfail-fastする。
 2. Docker imageをbuildする。
 3. Container内で `generate` を実行し、`dist/` を成果物として取り出す。
-4. `gh release create` で16ファイル (ttf 8 + otf 8) をindividual assetとしてuploadする。
+4. `gh release create` で8ファイル (ttf 4 + otf 4) をindividual assetとしてuploadする。
 
 フォントversionは `pyproject.toml` のversionと同期する。
 

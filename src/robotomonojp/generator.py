@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import contextlib
 import shutil
 import tempfile
 from dataclasses import dataclass
@@ -11,18 +10,14 @@ from pathlib import Path
 from typing import Any
 
 from . import params, properties
-from .config import Config, VariantConfig
+from .config import Config
 from .fontforge_helpers import (
     clear_font_glyph,
     fix_all_glyph_points,
     fontforge,
     make_italic,
+    psMat,
     remove_glyphs_with_features,
-    remove_lookups,
-    resize_all_glyph_width,
-    resize_all_scale,
-    resize_glyph_width,
-    set_font_em,
 )
 from .patcher import DEFAULT_NERD_FONTS_ROOT
 from .patcher import patch as run_nerd_font_patch
@@ -33,7 +28,6 @@ class BuildRequest:
     """generate1回分の入力."""
 
     config: Config
-    variant_name: str  # "proportional" | "mono"
     style: str  # "Regular" | "Bold" | "Italic" | "BoldItalic"
     version: str
     output_dir: Path
@@ -44,22 +38,28 @@ class BuildRequest:
 def _new_font(
     familyname: str,
     style: str,
-    variant_cfg: VariantConfig,
     italic_angle: float,
     version: str,
     copyright_text: str,
     vendor: str,
+    ascent: int,
+    descent: int,
+    em: int,
+    underline_pos: int,
+    underline_height: int,
+    os2_ascent: int,
+    os2_descent: int,
 ) -> Any:
     """空フォントを作り、メタデータとOS/2/hheaを埋める."""
     font = fontforge.font()
     style_property = properties.STYLE_PROPERTIES[style]
 
-    font.ascent = variant_cfg.ascent
-    font.descent = variant_cfg.descent
-    font.em = variant_cfg.em
+    font.ascent = ascent
+    font.descent = descent
+    font.em = em
     font.italicangle = italic_angle if properties.is_italic(style) else 0
-    font.upos = variant_cfg.underline_pos
-    font.uwidth = variant_cfg.underline_height
+    font.upos = underline_pos
+    font.uwidth = underline_height
     font.familyname = familyname
     font.copyright = copyright_text
     font.encoding = properties.ENCODING
@@ -105,19 +105,19 @@ def _new_font(
         4,  # X-height = Constant/Large
     )
 
-    font.os2_typoascent = variant_cfg.ascent
-    font.os2_typodescent = -variant_cfg.descent
+    font.os2_typoascent = ascent
+    font.os2_typodescent = -descent
     font.os2_typoascent_add = 0
     font.os2_typodescent_add = 0
     font.os2_typolinegap = 0
 
-    font.os2_winascent = variant_cfg.os2_ascent
-    font.os2_windescent = variant_cfg.os2_descent
+    font.os2_winascent = os2_ascent
+    font.os2_windescent = os2_descent
     font.os2_winascent_add = 0
     font.os2_windescent_add = 0
 
-    font.hhea_ascent = variant_cfg.os2_ascent
-    font.hhea_descent = -variant_cfg.os2_descent
+    font.hhea_ascent = os2_ascent
+    font.hhea_descent = -os2_descent
     font.hhea_ascent_add = 0
     font.hhea_descent_add = 0
     font.hhea_linegap = 0
@@ -125,57 +125,47 @@ def _new_font(
     return font
 
 
-def _load_jp_font(path: Path, variant_cfg: VariantConfig) -> Any:
-    """JPフォントを開き、旧 main_mono.get_jp_font 相当の前処理を行う."""
+def _load_jp_font(
+    path: Path,
+    ascent: int,
+    descent: int,
+    em: int,
+    en_width: int,
+    jp_width: int,
+    jp_scale_offset: float,
+) -> Any:
+    """JPフォントを開き、旧 main.py 相当のサイズ調整を行う."""
     font = fontforge.open(str(path))
+    old_jp_ascent = font.ascent
+    scale = ascent / old_jp_ascent + jp_scale_offset
+
     font.encoding = properties.ENCODING
-
-    remove_lookups(
-        font,
-        gsub_prefixes=params.GSUB_LOOKUP_PREFIXES,
-        gpos_prefixes=params.GPOS_LOOKUP_PREFIXES,
-    )
-
-    clear_font_glyph(font, params.LIGATURE[0], params.LIGATURE[1])
-
-    for start, end in params.JP_CLEAR_RANGES:
-        clear_font_glyph(font, start, end)
-
-    set_font_em(font, variant_cfg.ascent, variant_cfg.descent, variant_cfg.em)
-
-    half_width = variant_cfg.em // 2
-    for code in params.JP_SHRINK_TO_HALF_UNICODE:
-        with contextlib.suppress(TypeError):
-            resize_glyph_width(font[code], half_width)
-    for name in params.JP_SHRINK_TO_HALF_GLYPHS:
-        with contextlib.suppress(TypeError):
-            resize_glyph_width(font[name], half_width)
-    for name in params.JP_KEEP_FULLWIDTH_GLYPHS:
-        with contextlib.suppress(TypeError):
-            resize_glyph_width(font[name], variant_cfg.em)
-
-    resize_all_scale(
-        font,
-        variant_cfg.jp_scale,
-        full_width=variant_cfg.jp_width,
-        half_width=variant_cfg.en_width,
-    )
-    fix_all_glyph_points(font, do_round=True)
 
     font.selection.all()
     font.unlinkReferences()
-    font.selection.none()
+    font.ascent = ascent
+    font.descent = descent
+    font.em = em
 
+    for glyph in font.glyphs():
+        if not glyph.isWorthOutputting:
+            font.selection.select(glyph)
+            font.clear()
+            continue
+
+        glyph.transform(psMat.scale(scale, scale))
+
+        if glyph.encoding in params.HANKAKU_KANA_LIST:
+            glyph.width = en_width
+        elif glyph.encoding in params.FULLWIDTH_CODES_LIST:
+            glyph.width = jp_width
     return font
 
 
-def _load_en_font(path: Path, variant_cfg: VariantConfig) -> Any:
-    """ENフォントを開き、EM/幅を variant に揃える."""
+def _load_en_font(path: Path) -> Any:
+    """ENフォントを開く."""
     font = fontforge.open(str(path))
     font.encoding = properties.ENCODING
-    set_font_em(font, variant_cfg.ascent, variant_cfg.descent, variant_cfg.em)
-    resize_all_glyph_width(font, variant_cfg.en_width)
-    fix_all_glyph_points(font, do_round=True)
     return font
 
 
@@ -199,13 +189,10 @@ def _copy_unicode_mappings(base_font: Any, source_font: Any) -> None:
 
 
 def build(request: BuildRequest) -> Path:
-    """1つの (variant, style) を生成し、ttfとotfを出力してttfのpathを返す."""
+    """1つのstyleを生成し、ttfとotfを出力してttfのpathを返す."""
     cfg = request.config
-    variant_cfg = getattr(cfg.variants, request.variant_name)
-    if variant_cfg is None:
-        raise ValueError(f"variant {request.variant_name!r} is not configured")
 
-    familyname = cfg.familyname_for(request.variant_name)
+    familyname = cfg.familyname_for()
     copyright_text = cfg.metadata.copyright or properties.DEFAULT_COPYRIGHT
     vendor = cfg.metadata.vendor or properties.DEFAULT_VENDOR
 
@@ -216,19 +203,25 @@ def build(request: BuildRequest) -> Path:
     base_font = _new_font(
         familyname=familyname,
         style=request.style,
-        variant_cfg=variant_cfg,
         italic_angle=cfg.italic_angle,
         version=request.version,
         copyright_text=copyright_text,
         vendor=vendor,
+        ascent=cfg.ascent,
+        descent=cfg.descent,
+        em=cfg.em,
+        underline_pos=cfg.underline_pos,
+        underline_height=cfg.underline_height,
+        os2_ascent=cfg.os2_ascent,
+        os2_descent=cfg.os2_descent,
     )
 
     with tempfile.TemporaryDirectory(prefix="robotomonojp-") as tmpdir:
         tmp_root = Path(tmpdir)
-        en_tmp = tmp_root / f"en-{request.variant_name}.ttf"
-        jp_tmp = tmp_root / f"jp-{request.variant_name}.ttf"
+        en_tmp = tmp_root / f"en-{request.style}.ttf"
+        jp_tmp = tmp_root / f"jp-{request.style}.ttf"
 
-        en_font = _load_en_font(en_path, variant_cfg)
+        en_font = _load_en_font(en_path)
         en_font.generate(str(en_tmp))
         en_font.close()
 
@@ -237,7 +230,15 @@ def build(request: BuildRequest) -> Path:
         base_font.mergeFonts(en_reload)
         en_reload.close()
 
-        jp_font = _load_jp_font(jp_path, variant_cfg)
+        jp_font = _load_jp_font(
+            jp_path,
+            ascent=cfg.ascent,
+            descent=cfg.descent,
+            em=cfg.em,
+            en_width=cfg.en_width,
+            jp_width=cfg.jp_width,
+            jp_scale_offset=cfg.jp_scale_offset,
+        )
         jp_font.generate(str(jp_tmp))
         jp_font.close()
 
@@ -264,10 +265,10 @@ def build(request: BuildRequest) -> Path:
         # 旧実装で明示的に消していた FB00-FB4F のUnicodeレンジも念のため削除.
         clear_font_glyph(base_font, params.LIGATURE[0], params.LIGATURE[1])
 
-        variant_out = request.output_dir / familyname
-        variant_out.mkdir(parents=True, exist_ok=True)
-        ttf_out = variant_out / f"{familyname}-{request.style}.ttf"
-        otf_out = variant_out / f"{familyname}-{request.style}.otf"
+        family_out = request.output_dir / familyname
+        family_out.mkdir(parents=True, exist_ok=True)
+        ttf_out = family_out / f"{familyname}-{request.style}.ttf"
+        otf_out = family_out / f"{familyname}-{request.style}.otf"
 
         pre_patch_ttf = tmp_root / f"{familyname}-{request.style}.pre.ttf"
         base_font.generate(str(pre_patch_ttf))

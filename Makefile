@@ -7,7 +7,7 @@ DOCKER_RUN = docker run --rm -v $(PWD):/app -w /app $(IMAGE)
 help:
 	@echo "make submodule-init  # Nerd Fonts submoduleを sparse-checkout 込みで初期化"
 	@echo "make docker-build    # Dockerイメージをbuild"
-	@echo "make generate        # config/plex.yaml から16ファイル生成"
+	@echo "make generate        # config/plex.yaml から8ファイル生成"
 	@echo "make generate-regular  # Regular だけ生成 (デバッグ用)"
 	@echo "make reinstall-macos-fonts  # 既存RobotoMonoPlexを削除してdistをmacOSに再インストール"
 	@echo "make print FONT=... TEXT=...  # フォント確認PDFを生成"

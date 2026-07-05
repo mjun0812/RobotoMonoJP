@@ -10,15 +10,10 @@ Download: <https://github.com/mjun0812/RobotoMonoJP/releases>
 
 `config.yaml` の `jp_identifier` から family name を決定します。
 
-例として `jp_identifier: Plex` の場合、以下の2 variantを生成します。
+例として `jp_identifier: Plex` の場合、`RobotoMonoPlex` を生成します。
+Roboto Mono 由来の幅を維持したまま日本語フォントを合成します。
 
-- `RobotoMonoPlex`
-  - Roboto Mono 由来の幅を維持する proportional variant
-- `RobotoMonoPlex-Mono`
-  - 半角幅 1024、全角幅 2048 の mono variant
-
-各 variant には `Regular` / `Bold` / `Italic` / `BoldItalic` があり、各 style で `ttf` と `otf` を出力します。
-全 variant を生成すると 16 ファイルになります。
+`Regular` / `Bold` / `Italic` / `BoldItalic` の各 style で `ttf` と `otf` を出力し、合計 8 ファイルになります。
 
 出力先は次の形式です。
 
@@ -47,7 +42,7 @@ make docker-build
 
 ## 生成
 
-`config/plex.yaml` を使って全 variant / 全 style を生成します。
+`config/plex.yaml` を使って全 style を生成します。
 
 ```bash
 make generate
@@ -72,13 +67,11 @@ docker run --rm -v "$PWD:/app" -w /app robotomonojp:dev \
 python3 -m robotomonojp generate \
   --config config/plex.yaml \
   --output dist \
-  --variant all \
   --style Regular
 ```
 
 - `-c` / `--config`: 設定ファイル
 - `-o` / `--output`: 出力先ディレクトリ。デフォルトは `dist`
-- `--variant`: `proportional` / `mono` / `all`
 - `--style`: `Regular` / `Bold` / `Italic` / `BoldItalic`。複数指定可
 - `--no-nerd-font`: Nerd Fonts の patch をスキップ
 - `--version-suffix`: フォント version に suffix を付与
@@ -108,7 +101,7 @@ python3 -m robotomonojp print <font-path> "sample text" --output preview.pdf
    - 例: `fonts/NotoSansJP/NotoSansJP-Bold.ttf`
 4. `config/*.yaml` を追加します。
    - 既存の `config/plex.yaml` をコピーして、`jp_identifier` と `fonts.jp` を変更します。
-5. 必要に応じて `variants` のメトリクスを調整します。
+5. 必要に応じてメトリクスを調整します。
    - `ascent + descent` は `em` と一致している必要があります。
 6. Docker 上で生成して確認します。
 
@@ -129,40 +122,25 @@ fonts:
     bold: fonts/NotoSansJP/NotoSansJP-Bold.ttf
 
 italic_angle: -11
-
-variants:
-  proportional:
-    ascent: 1638
-    descent: 410
-    em: 2048
-    en_width: 1299
-    jp_width: 1849
-    jp_scale: 1.10
-    underline_pos: -200
-    underline_height: 100
-    os2_ascent: 2146
-    os2_descent: 555
-
-  mono:
-    ascent: 1638
-    descent: 410
-    em: 2048
-    en_width: 1024
-    jp_width: 2048
-    jp_scale: 0.9
-    underline_pos: -200
-    underline_height: 100
-    os2_ascent: 1638
-    os2_descent: 410
+ascent: 1638
+descent: 410
+em: 2048
+en_width: 1299
+jp_width: 1849
+jp_scale_offset: 0.10
+underline_pos: -200
+underline_height: 100
+os2_ascent: 2146
+os2_descent: 555
 ```
 
 `jp_identifier` は family name に使われます。
 
 - 先頭大文字の ASCII 英数字にしてください。
 - 最大16文字です。
-- `Mono` は variant suffix と衝突するため使えません。
+- `Mono` は予約されているため使えません。
 
-`jp_identifier: Noto` の場合、出力 family name は `RobotoMonoNoto` と `RobotoMonoNoto-Mono` になります。
+`jp_identifier: Noto` の場合、出力 family name は `RobotoMonoNoto` になります。
 
 ## 設定ファイル
 
@@ -173,8 +151,8 @@ variants:
 - `fonts.en`: Roboto Mono の `regular` / `bold`
 - `fonts.jp`: 日本語フォントの `regular` / `bold`
 - `italic_angle`: italic 生成時の傾き
-- `variants.proportional`: proportional variant のメトリクス
-- `variants.mono`: mono variant のメトリクス
+- `ascent` / `descent` / `em` などのメトリクス
+- `jp_scale_offset`: JPフォントのスケール (`ascent / 元JPフォントのascent`) に加算する offset
 
 詳細な仕様は [docs/spec.md](docs/spec.md) を参照してください。
 
@@ -192,8 +170,8 @@ make test
 
 1. `fonts/{FontName}/` に `Regular` と `Bold` のフォントファイル、ライセンスファイルを追加します。
 2. `config/plex.yaml` を元に `config/{font}.yaml` を追加し、`jp_identifier` と `fonts.jp` を変更します。
-3. `variants` の `jp_width` / `jp_scale` / `os2_ascent` / `os2_descent` を調整します。
-4. `make generate CONFIG=config/{font}.yaml` で全 variant / 全 style を生成します。
+3. `jp_width` / `jp_scale_offset` / `os2_ascent` / `os2_descent` を調整します。
+4. `make generate CONFIG=config/{font}.yaml` で全 style を生成します。
 5. `make print FONT=dist/{familyname}/{familyname}-Regular.ttf TEXT="Roboto Mono 日本語 123" OUT=preview.pdf` で表示を確認します。
 6. macOS で確認する場合は `make reinstall-macos-fonts OUTPUT=dist` でインストール済みフォントを入れ替えます。
 7. `make lint` と `make test` を実行します。
