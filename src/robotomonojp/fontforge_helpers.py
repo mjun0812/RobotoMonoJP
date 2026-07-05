@@ -62,10 +62,14 @@ def resize_all_scale(
     scale: float,
     translate_x: float | None = None,
     translate_y: float | None = None,
+    full_width: int | None = None,
+    half_width: int | None = None,
 ) -> None:
     """全glyphを scale 倍にし、中央にtranslateしてから追加のtranslateを適用."""
     em = font.em
     x_to_center = em * (1 - scale) / 2
+    target_full_width = full_width if full_width is not None else em
+    target_half_width = half_width if half_width is not None else em // 2
 
     scale_mat = [psMat.scale(scale) for _ in range(2)]
     trans_mat = [psMat.translate(x) for x in (x_to_center, x_to_center / 2)]
@@ -75,10 +79,10 @@ def resize_all_scale(
         width = glyph.width
         if width == em:
             glyph.transform(mat[0])
-            glyph.width = em
+            glyph.width = target_full_width
         elif width == em // 2:
             glyph.transform(mat[1])
-            glyph.width = em // 2
+            glyph.width = target_half_width
 
         if translate_x is not None:
             glyph.transform(psMat.translate(translate_x, 0))

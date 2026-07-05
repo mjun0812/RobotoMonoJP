@@ -35,10 +35,11 @@ RUN curl -LsSf https://astral.sh/uv/install.sh \
 
 WORKDIR /app
 
-# Install runtime deps against the system python. Source is mounted at runtime,
-# so we only need pyproject.toml here.
+# Install the package against the system python so importlib.metadata can read
+# the project version. Source is mounted at runtime for local generation.
 COPY pyproject.toml /app/pyproject.toml
-RUN uv pip install --system --break-system-packages \
-        "typer>=0.12" "pydantic>=2.5" "pyyaml>=6.0"
+COPY README.md /app/README.md
+COPY src /app/src
+RUN uv pip install --system --break-system-packages .
 
 CMD ["bash"]

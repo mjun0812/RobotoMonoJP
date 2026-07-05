@@ -154,7 +154,12 @@ def _load_jp_font(path: Path, variant_cfg: VariantConfig) -> Any:
         with contextlib.suppress(TypeError):
             resize_glyph_width(font[name], variant_cfg.em)
 
-    resize_all_scale(font, variant_cfg.jp_scale)
+    resize_all_scale(
+        font,
+        variant_cfg.jp_scale,
+        full_width=variant_cfg.jp_width,
+        half_width=variant_cfg.en_width,
+    )
     fix_all_glyph_points(font, do_round=True)
 
     font.selection.all()
