@@ -1,0 +1,32 @@
+# BIZ UDGothic + RobotoMono の RobotoMonoBizUd を生成するconfig.
+# docker 内から見えるpath (作業ディレクトリ /app) 前提で書いている.
+
+jp_identifier: BizUd
+
+metadata:
+  vendor: mjun
+
+fonts:
+  en:
+    regular: fonts/RobotoMono/RobotoMono-Regular.ttf
+    bold: fonts/RobotoMono/RobotoMono-Bold.ttf
+  jp:
+    regular: fonts/BIZUDGothic/BIZUDGothic-Regular.ttf
+    bold: fonts/BIZUDGothic/BIZUDGothic-Bold.ttf
+
+italic_angle: -11
+ascent: 1638
+descent: 410
+em: 2048
+en_width: 1299
+jp_width: 1849
+jp_scale_offset: 0.02
+underline_pos: -200
+underline_height: 100
+os2_ascent: 2146
+os2_descent: 555
+
+# 公式font-patcherがv5.0.0の独自patcherより小さく埋め込むglyphの補正 (ink中心基準の倍率).
+nerd_font_glyph_scales:
+  "F179": 1.15 # nf-fa-apple
+  "F17A": 1.15 # nf-fa-windows
