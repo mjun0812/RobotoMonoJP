@@ -13,6 +13,17 @@ Download: <https://github.com/mjun0812/RobotoMonoJP/releases>
 例として `jp_identifier: Plex` の場合、`RobotoMonoPlex` を生成します。
 Roboto Mono 由来の幅を維持したまま日本語フォントを合成します。
 
+現在、次の 6 family が生成可能です。
+
+| config                 | family             | 日本語フォント      |
+| ---------------------- | ------------------ | ------------------- |
+| `config/plex.yaml`     | RobotoMonoPlex     | IBM Plex Sans JP    |
+| `config/bizud.yaml`    | RobotoMonoBizUd    | BIZ UDGothic        |
+| `config/lineseed.yaml` | RobotoMonoLineSeed | LINE Seed JP        |
+| `config/noto.yaml`     | RobotoMonoNoto     | Noto Sans JP        |
+| `config/zenkaku.yaml`  | RobotoMonoZenKaku  | Zen Kaku Gothic New |
+| `config/genjyuu.yaml`  | RobotoMonoGenJyuu  | 源柔ゴシック        |
+
 `Regular` / `Bold` / `Italic` / `BoldItalic` の各 style で `ttf` と `otf` を出力し、合計 8 ファイルになります。
 
 出力先は次の形式です。
