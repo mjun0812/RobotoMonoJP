@@ -166,8 +166,8 @@ GitHub Actionsで並列jobを走らせる。
 
 1. jobの先頭で `pyproject.toml` の version と tag名 (先頭 `v` を除いたもの) の一致を確認する。不一致ならfail-fastする。
 2. Docker imageをbuildする。
-3. Container内で `generate` を実行し、`dist/` を成果物として取り出す。
-4. `gh release create` で8ファイル (ttf 4 + otf 4) をindividual assetとしてuploadする。
+3. `config/*.yaml` の全configに対して `generate` を実行し、`dist/` を成果物として取り出す。
+4. `gh release create` で全config分のfont (config数 × 4 style × (ttf, otf)) をindividual assetとしてuploadする。
 
 フォントversionは `pyproject.toml` のversionと同期する。
 
