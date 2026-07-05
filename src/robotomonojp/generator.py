@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from . import params, properties
-from .config import Config
+from .config import Config, parse_codepoint_range
 from .fontforge_helpers import (
     clear_font_glyph,
     fix_all_glyph_points,
@@ -201,6 +201,31 @@ def _load_en_font(path: Path) -> Any:
     return font
 
 
+def _scale_nerd_glyphs(font: Any, scales: dict[str, float]) -> None:
+    """指定codepointのglyphを、advanceを変えずにink中心基準で拡大縮小する.
+
+    公式font-patcherがv5.0.0の独自patcherより小さく埋め込むglyph
+    (appleロゴなど) の補正に使う。
+    """
+    for key, factor in scales.items():
+        start, end = parse_codepoint_range(key)
+        for code in range(start, end + 1):
+            try:
+                glyph = font[code]
+            except TypeError:
+                continue
+            xmin, ymin, xmax, ymax = glyph.boundingBox()
+            if xmax <= xmin:
+                continue
+            width = glyph.width
+            center_x = (xmin + xmax) / 2
+            center_y = (ymin + ymax) / 2
+            glyph.transform(psMat.translate(-center_x, -center_y))
+            glyph.transform(psMat.scale(factor, factor))
+            glyph.transform(psMat.translate(center_x, center_y))
+            glyph.width = width
+
+
 def _copy_unicode_mappings(base_font: Any, source_font: Any) -> None:
     """mergeFonts後、JP側のunicode/altuniを最終フォントに反映する."""
     for glyph in source_font.glyphs():
@@ -315,6 +340,11 @@ def build(request: BuildRequest) -> Path:
                 complete=True,
                 mono=False,
             )
+            if cfg.nerd_font_glyph_scales:
+                patched_font = fontforge.open(str(patched_ttf))
+                _scale_nerd_glyphs(patched_font, cfg.nerd_font_glyph_scales)
+                patched_font.generate(str(patched_ttf))
+                patched_font.close()
             shutil.copy(patched_ttf, ttf_out)
         else:
             shutil.copy(pre_patch_ttf, ttf_out)

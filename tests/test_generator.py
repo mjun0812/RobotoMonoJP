@@ -189,3 +189,40 @@ def test_load_jp_font_applies_old_proportional_scale(monkeypatch: pytest.MonkeyP
     assert empty.transforms == []
     assert font.selection.selected == [empty]
     assert font.cleared == 1
+
+
+class FakeIndexableFont:
+    """codepoint indexing だけを持つ font fake."""
+
+    def __init__(self, glyph_map: dict[int, FakeGlyph]) -> None:
+        """codepoint → glyph のマップを設定する."""
+        self._glyphs = glyph_map
+
+    def __getitem__(self, code: int) -> FakeGlyph:
+        """fontforge と同じく、存在しない codepoint は TypeError."""
+        if code not in self._glyphs:
+            raise TypeError(f"no glyph at {code}")
+        return self._glyphs[code]
+
+
+def test_scale_nerd_glyphs(monkeypatch: pytest.MonkeyPatch) -> None:
+    """指定codepointのglyphだけをink中心基準で拡大する."""
+    apple = FakeGlyph(0xF179)
+    apple.bbox = (100.0, 0.0, 1300.0, 1600.0)
+    other = FakeGlyph(0xF126)
+    empty_ink = FakeGlyph(0xF17A)  # inkが無いglyphは触らない
+    font = FakeIndexableFont({0xF179: apple, 0xF126: other, 0xF17A: empty_ink})
+    monkeypatch.setattr(generator, "psMat", FakePsMat)
+
+    # 存在しない F17B を含むレンジ指定でもエラーにならない.
+    generator._scale_nerd_glyphs(font, {"F179-F17B": 1.15})
+
+    center_x = (100.0 + 1300.0) / 2
+    center_y = (0.0 + 1600.0) / 2
+    assert apple.transforms == [
+        ("translate", -center_x, -center_y),
+        ("scale", 1.15, 1.15),
+        ("translate", center_x, center_y),
+    ]
+    assert empty_ink.transforms == []
+    assert other.transforms == []  # レンジ外は触らない
