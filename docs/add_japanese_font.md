@@ -104,8 +104,8 @@ Roboto Mono が同じ文字を持つ場合は merge で EN 側が優先される
 # Regular だけ生成 (Docker)
 make generate-regular CONFIG=config/{font}.yaml
 
-# サンプル文字列をPDFで確認
-make print FONT=dist/{familyname}/{familyname}-Regular.ttf TEXT="Roboto Mono 日本語 123 ○★→" OUT=preview.pdf
+# サンプル文字列をPDFで確認 (TEXT省略時は全文字種を網羅したデフォルトを使用)
+make print FONT=dist/{familyname}/{familyname}-Regular.ttf
 
 # glyph幅の実測 (fontforge)
 docker run --rm -v "$PWD:/app" -w /app robotomonojp:dev python3 -c "

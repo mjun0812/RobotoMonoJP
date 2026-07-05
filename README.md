@@ -79,8 +79,10 @@ python3 -m robotomonojp generate \
 ## フォント確認PDF
 
 生成済みフォントでサンプル文字列を PDF に出力できます。
+`TEXT` を省略すると、英数字・かな・漢字・全角/曖昧幅記号・Nerd Fonts (source別) を網羅したデフォルト文字列を使います。
 
 ```bash
+make print
 make print FONT=dist/{familyname}/{familyname}-Regular.ttf TEXT="Roboto Mono 日本語 123" OUT=preview.pdf
 ```
 
