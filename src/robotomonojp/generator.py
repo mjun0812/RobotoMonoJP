@@ -127,7 +127,7 @@ def _new_font(
 
 
 # 曖昧幅記号のinkに許すセル幅の割合. 残りは左右の余白になる.
-SYMBOL_INK_RATIO = 0.96
+SYMBOL_INK_RATIO = 0.92
 
 
 def _normalize_symbol_width(glyph: Any, en_width: int, jp_width: int) -> None:
