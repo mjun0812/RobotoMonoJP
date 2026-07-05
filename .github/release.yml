@@ -1,0 +1,10 @@
+changelog:
+  exclude:
+    authors:
+      - dependabot
+      - dependabot[bot]
+      - github-actions[bot]
+  categories:
+    - title: "🚀 Changes"
+      labels:
+        - "*"

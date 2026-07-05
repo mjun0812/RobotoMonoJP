@@ -8,26 +8,26 @@ on:
 
 jobs:
   lint:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-slim
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v3
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v8.2.0
       - run: uvx ruff format --check .
       - run: uvx ruff check .
 
   test:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-slim
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v3
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v8.2.0
       - name: Setup Python
         run: uv python install 3.12
       - name: Install deps and run pytest
         run: uv run --with pydantic --with pyyaml --with typer --with pytest pytest
 
   docker:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-slim
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Build image
         run: docker build -t robotomonojp:ci .
