@@ -37,8 +37,10 @@ jobs:
 
       - name: Generate fonts
         run: |
-          docker run --rm -v "$PWD:/app" -w /app robotomonojp:release \
-            python3 -m robotomonojp generate -c config/plex.yaml -o dist
+          for config in config/*.yaml; do
+            docker run --rm -v "$PWD:/app" -w /app robotomonojp:release \
+              python3 -m robotomonojp generate -c "$config" -o dist
+          done
 
       - name: Upload release assets
         env:
