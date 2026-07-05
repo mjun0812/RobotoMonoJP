@@ -1,6 +1,6 @@
 [project]
 name = "robotomonojp"
-version = "6.0.0"
+version = "6.1.0"
 description = "RobotoMono + Japanese Font + Nerd Font 合成フォント生成CLI"
 readme = "README.md"
 authors = [{ name = "Junya Morioka", email = "mjun@mjunya.com" }]
