@@ -9,6 +9,7 @@ help:
 	@echo "make docker-build    # Dockerイメージをbuild"
 	@echo "make generate        # config/plex.yaml から16ファイル生成"
 	@echo "make generate-regular  # Regular だけ生成 (デバッグ用)"
+	@echo "make reinstall-macos-fonts  # 既存RobotoMonoPlexを削除してdistをmacOSに再インストール"
 	@echo "make print FONT=... TEXT=...  # フォント確認PDFを生成"
 	@echo "make lint            # ruff format --check + ruff check"
 	@echo "make format          # ruff format"
@@ -36,6 +37,25 @@ generate-regular:
 .PHONY: print
 print:
 	$(DOCKER_RUN) python3 -m robotomonojp print $(FONT) "$(TEXT)" -o $(OUT)
+
+.PHONY: reinstall-macos-fonts
+reinstall-macos-fonts:
+	@set -eu; \
+	font_dir="$$HOME/Library/Fonts"; \
+	echo "Existing RobotoMonoPlex fonts in $$font_dir:"; \
+	find "$$font_dir" -maxdepth 1 -type f \( -name 'RobotoMonoPlex*.ttf' -o -name 'RobotoMonoPlex*.otf' \) -print | sort; \
+	echo; \
+	echo "Fonts to install from $(OUTPUT):"; \
+	find "$(OUTPUT)" -type f \( -name '*.ttf' -o -name '*.otf' \) -print | sort; \
+	echo; \
+	printf "Type 'reinstall' to delete existing fonts and install dist fonts: "; \
+	read answer; \
+	test "$$answer" = "reinstall"; \
+	find "$$font_dir" -maxdepth 1 -type f \( -name 'RobotoMonoPlex*.ttf' -o -name 'RobotoMonoPlex*.otf' \) -delete; \
+	find "$(OUTPUT)" -type f \( -name '*.ttf' -o -name '*.otf' \) -exec cp {} "$$font_dir"/ \;; \
+	if command -v fc-cache >/dev/null 2>&1; then fc-cache -f "$$font_dir" || true; fi; \
+	echo "Installed RobotoMonoPlex fonts:"; \
+	find "$$font_dir" -maxdepth 1 -type f \( -name 'RobotoMonoPlex*.ttf' -o -name 'RobotoMonoPlex*.otf' \) -print | sort
 
 .PHONY: lint
 lint:
