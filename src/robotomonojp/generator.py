@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import shutil
 import tempfile
+import unicodedata
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -125,6 +126,23 @@ def _new_font(
     return font
 
 
+def _normalize_symbol_width(glyph: Any, en_width: int, jp_width: int) -> None:
+    """East Asian Widthに基づき、記号glyphの幅をTerminalのセル幅に合わせる.
+
+    W/F (全角) は jp_width にする。それ以外 (曖昧幅・中立を含む) はTerminalが
+    1セルで扱うため、inkがはみ出すglyphは縮小した上で en_width に収める。
+    """
+    if glyph.width == 0:
+        return
+    if unicodedata.east_asian_width(chr(glyph.encoding)) in ("W", "F"):
+        glyph.width = jp_width
+        return
+    if glyph.width > en_width:
+        shrink = en_width / glyph.width
+        glyph.transform(psMat.scale(shrink, shrink))
+    glyph.width = en_width
+
+
 def _load_jp_font(
     path: Path,
     ascent: int,
@@ -159,6 +177,8 @@ def _load_jp_font(
             glyph.width = en_width
         elif glyph.encoding in params.FULLWIDTH_CODES_LIST:
             glyph.width = jp_width
+        elif 0 <= glyph.encoding <= 0x10FFFF:
+            _normalize_symbol_width(glyph, en_width, jp_width)
     return font
 
 

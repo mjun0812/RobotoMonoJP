@@ -160,8 +160,8 @@ os2_descent: 555
 | `ascent`             | ○    | -              | ascent (typo ascent にも使用)                                                                    |
 | `descent`            | ○    | -              | descent (typo descent にも使用)                                                                  |
 | `em`                 | ○    | -              | em サイズ。`ascent + descent` と一致している必要がある                                           |
-| `en_width`           | ○    | -              | 半角カナ (U+FF61-FF9E) に設定する幅                                                              |
-| `jp_width`           | ○    | -              | 全角 glyph (ひらがな・カタカナ・漢字) に設定する幅                                               |
+| `en_width`           | ○    | -              | 半角カナ (U+FF61-FF9E) と曖昧幅記号 (`○` `→` など) に設定する幅                                 |
+| `jp_width`           | ○    | -              | 全角 glyph (ひらがな・カタカナ・漢字・全角記号) に設定する幅                                     |
 | `jp_scale_offset`    | ○    | -              | JP フォントのスケール倍率 (`ascent / 元JPフォントのascent`) に加算する offset                    |
 | `underline_pos`      | ○    | -              | 下線の位置                                                                                       |
 | `underline_height`   | ○    | -              | 下線の太さ                                                                                       |

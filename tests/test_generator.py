@@ -106,7 +106,16 @@ def test_load_jp_font_applies_old_proportional_scale(monkeypatch: pytest.MonkeyP
     fullwidth = FakeGlyph(0x3042)
     latin = FakeGlyph(0x0041)
     empty = FakeGlyph(0x0000, worth_outputting=False)
-    font = FakeFont(ascent=880, glyph_list=[hankaku, fullwidth, latin, empty])
+    ambiguous = FakeGlyph(0x25CB)  # ○ (East Asian Width = A)
+    ambiguous.width = 1961
+    wide_symbol = FakeGlyph(0x3007)  # 〇 (East Asian Width = W)
+    wide_symbol.width = 1961
+    zero_width = FakeGlyph(0x0300)  # combining mark
+    zero_width.width = 0
+    font = FakeFont(
+        ascent=880,
+        glyph_list=[hankaku, fullwidth, latin, empty, ambiguous, wide_symbol, zero_width],
+    )
     FakeFontForge.opened = font
     monkeypatch.setattr(generator, "fontforge", FakeFontForge)
     monkeypatch.setattr(generator, "psMat", FakePsMat)
@@ -126,12 +135,24 @@ def test_load_jp_font_applies_old_proportional_scale(monkeypatch: pytest.MonkeyP
     assert (font.ascent, font.descent, font.em) == (1638, 410, 2048)
 
     expected_scale = 1638 / 880 + 0.10
-    for glyph in (hankaku, fullwidth, latin):
+    for glyph in (hankaku, fullwidth, latin, wide_symbol, zero_width):
         assert glyph.transforms == [("scale", expected_scale, expected_scale)]
 
     assert hankaku.width == 1299
     assert fullwidth.width == 1849
-    assert latin.width == 500  # 半角カナ・全角以外は幅を触らない
+    assert latin.width == 1299  # 曖昧幅・中立の記号は半角セルに正規化する
+
+    # 曖昧幅 (EAW=A) ではみ出すglyphは縮小して en_width に収める.
+    shrink = 1299 / 1961
+    assert ambiguous.transforms == [
+        ("scale", expected_scale, expected_scale),
+        ("scale", shrink, shrink),
+    ]
+    assert ambiguous.width == 1299
+
+    # EAW=W の記号は jp_width、zero-widthのglyphは幅を触らない.
+    assert wide_symbol.width == 1849
+    assert zero_width.width == 0
 
     assert empty.transforms == []
     assert font.selection.selected == [empty]
