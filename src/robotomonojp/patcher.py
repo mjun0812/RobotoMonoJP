@@ -56,6 +56,7 @@ def patch(
         cmd.append("--complete")
     if mono:
         cmd.append("--mono")
+    cmd.extend(["--makegroups", "-1"])
     if extra_args:
         cmd.extend(extra_args)
 
