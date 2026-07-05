@@ -117,8 +117,8 @@ for ch in 'Aあ漢ｱ○→★Ａ':
     print(f'{ch}: width={g.width} ink=({xmin:.0f},{xmax:.0f})')
 "
 
-# macOSへのインストール (既存の同familyを置き換え)
-make reinstall-macos-fonts FAMILY={familyname} OUTPUT=dist
+# macOSへのインストール (dist内の全familyについて既存を置き換え)
+make reinstall-macos-fonts OUTPUT=dist
 ```
 
 Terminal での最終確認は、フォントをインストールした上で WezTerm / VSCode Terminal のフォント設定を切り替えて行う。
