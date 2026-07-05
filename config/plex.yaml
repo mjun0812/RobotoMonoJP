@@ -1,0 +1,42 @@
+# IBM Plex Sans JP + RobotoMono の RobotoMonoJP を再現するconfig.
+# docker 内から見えるpath (作業ディレクトリ /app) 前提で書いている.
+
+jp_identifier: Plex
+
+metadata:
+  vendor: mjun
+
+fonts:
+  en:
+    regular: fonts/RobotoMono/RobotoMono-Regular.ttf
+    bold: fonts/RobotoMono/RobotoMono-Bold.ttf
+  jp:
+    regular: fonts/IBMPlexSansJP/IBMPlexSansJP-Regular.ttf
+    bold: fonts/IBMPlexSansJP/IBMPlexSansJP-Bold.ttf
+
+italic_angle: -11
+
+variants:
+  proportional:
+    ascent: 1638
+    descent: 410
+    em: 2048
+    en_width: 1299
+    jp_width: 1849
+    jp_scale: 1.10
+    underline_pos: -200
+    underline_height: 100
+    os2_ascent: 2146
+    os2_descent: 555
+
+  mono:
+    ascent: 1638
+    descent: 410
+    em: 2048
+    en_width: 1024
+    jp_width: 2048
+    jp_scale: 0.9
+    underline_pos: -200
+    underline_height: 100
+    os2_ascent: 1638
+    os2_descent: 410

@@ -1,0 +1,51 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Verify pyproject.toml version matches tag
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          PROJ_VERSION="$(grep -E '^version *= *"' pyproject.toml | head -1 | sed -E 's/version *= *"([^"]+)"/\1/')"
+          echo "tag=$TAG_VERSION project=$PROJ_VERSION"
+          if [ "$TAG_VERSION" != "$PROJ_VERSION" ]; then
+            echo "::error::pyproject.toml version ($PROJ_VERSION) does not match tag ($TAG_VERSION)"
+            exit 1
+          fi
+
+      - name: Init nerd-fonts submodule (sparse)
+        run: |
+          git submodule init vendor/nerd-fonts
+          git -c protocol.file.allow=always submodule update --checkout vendor/nerd-fonts
+          git -C vendor/nerd-fonts sparse-checkout set --skip-checks \
+            font-patcher src/glyphs bin/scripts/name_parser bin/scripts/braille
+
+      - name: Docker build
+        run: docker build -t robotomonojp:release .
+
+      - name: Generate fonts
+        run: |
+          docker run --rm -v "$PWD:/app" -w /app robotomonojp:release \
+            python3 -m robotomonojp generate -c config/plex.yaml -o dist
+
+      - name: Upload release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          shopt -s globstar nullglob
+          gh release create "$GITHUB_REF_NAME" \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes \
+            dist/**/*.ttf dist/**/*.otf
