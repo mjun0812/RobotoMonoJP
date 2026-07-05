@@ -12,37 +12,36 @@ except ImportError:  # pragma: no cover
 
 fontforge: Any = cast(Any, _fontforge)
 
-DEFAULT_SIZES: tuple[int, ...] = (8, 10, 12, 14, 18, 24, 36)
+DEFAULT_SIZE = 24
 
 
-def print_pdf(
-    font_path: Path, sample: str, output: Path, sizes: tuple[int, ...] | None = None
-) -> Path:
-    """指定フォントで sample を複数サイズにレンダリングしたPDFを output に書き出す.
+def print_pdf(font_path: Path, sample: str, output: Path, size: int | None = None) -> Path:
+    """指定フォントで sample をレンダリングしたPDFを output に書き出す.
+
+    FontForge の複数サイズ出力 ('waterfall' / 'multisize') は空のPDFを出力する
+    バグがあるため、単一サイズの 'fontsample' でレンダリングする。
 
     Args:
         font_path: 対象フォントの ttf/otf path.
-        sample: レンダリングする文字列. 空文字列なら FontForge のデフォルトサンプル.
+        sample: レンダリングする文字列. 空文字列なら FontForge のglyph table.
         output: 出力先PDFのpath.
-        sizes: サイズリスト (pt). 未指定なら DEFAULT_SIZES.
+        size: レンダリングサイズ (pt). 未指定なら DEFAULT_SIZE.
     """
     if fontforge is None:
         raise RuntimeError("fontforge python bindings が使えません. Docker外で実行していませんか?")
 
-    used_sizes = sizes or DEFAULT_SIZES
+    used_size = size or DEFAULT_SIZE
     output.parent.mkdir(parents=True, exist_ok=True)
 
     font = fontforge.open(str(font_path))
     try:
         fontforge.printSetup("pdf-file")
         # printSample は (type, pointsize, sample, outputfile) を受ける.
-        # 複数サイズを重ねる方法は無いため、最大サイズをbase pointsizeにする.
         # sample が空文字列なら "fontdisplay" タイプでglyph tableを吐く.
         if not sample:
-            font.printSample("fontdisplay", max(used_sizes), "", str(output))
+            font.printSample("fontdisplay", used_size, "", str(output))
         else:
-            multi = "\n".join(f"{s}pt: {sample}" for s in used_sizes)
-            font.printSample("multisize", max(used_sizes), multi, str(output))
+            font.printSample("fontsample", used_size, sample, str(output))
     finally:
         font.close()
 

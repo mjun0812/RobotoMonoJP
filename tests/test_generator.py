@@ -116,7 +116,29 @@ def test_load_jp_font_applies_old_proportional_scale(monkeypatch: pytest.MonkeyP
     fullwidth = FakeGlyph(0x3042)
     latin = FakeGlyph(0x0041)
     empty = FakeGlyph(0x0000, worth_outputting=False)
-    font = FakeFont(ascent=880, glyph_list=[hankaku, fullwidth, latin, empty])
+    ambiguous = FakeGlyph(0x25CB)  # ○ (East Asian Width = A)
+    ambiguous.width = 1961
+    ambiguous.bbox = (143.0, -20.0, 1818.0, 1500.0)
+    narrow_symbol = FakeGlyph(0x2502)  # │ (inkがセル幅に収まる記号)
+    narrow_symbol.width = 1961
+    narrow_symbol.bbox = (700.0, 0.0, 900.0, 1200.0)
+    wide_symbol = FakeGlyph(0x3007)  # 〇 (East Asian Width = W)
+    wide_symbol.width = 1961
+    zero_width = FakeGlyph(0x0300)  # combining mark
+    zero_width.width = 0
+    font = FakeFont(
+        ascent=880,
+        glyph_list=[
+            hankaku,
+            fullwidth,
+            latin,
+            empty,
+            ambiguous,
+            narrow_symbol,
+            wide_symbol,
+            zero_width,
+        ],
+    )
     FakeFontForge.opened = font
     monkeypatch.setattr(generator, "fontforge", FakeFontForge)
     monkeypatch.setattr(generator, "psMat", FakePsMat)
@@ -136,12 +158,33 @@ def test_load_jp_font_applies_old_proportional_scale(monkeypatch: pytest.MonkeyP
     assert (font.ascent, font.descent, font.em) == (1638, 410, 2048)
 
     expected_scale = 1638 / 880 + 0.10
-    for glyph in (hankaku, fullwidth, latin):
+    for glyph in (hankaku, fullwidth, latin, wide_symbol, zero_width):
         assert glyph.transforms == [("scale", expected_scale, expected_scale)]
 
     assert hankaku.width == 1299
     assert fullwidth.width == 1849
-    assert latin.width == 500  # 半角カナ・全角以外は幅を触らない
+    assert latin.width == 1299  # 曖昧幅・中立の記号は半角セルに正規化する
+
+    # 曖昧幅 (EAW=A) でinkがはみ出すglyphは、ink基準で縮小して中央に寄せる.
+    shrink = (1299 * generator.SYMBOL_INK_RATIO) / (1818.0 - 143.0)
+    dx = (1299 - 143.0 * shrink - 1818.0 * shrink) / 2
+    assert ambiguous.transforms == [
+        ("scale", expected_scale, expected_scale),
+        ("scale", shrink, shrink),
+        ("translate", dx, 0),
+    ]
+    assert ambiguous.width == 1299
+
+    # inkがセル幅に収まる記号は縮小せず、中央寄せだけ行う.
+    assert narrow_symbol.transforms == [
+        ("scale", expected_scale, expected_scale),
+        ("translate", (1299 - 700.0 - 900.0) / 2, 0),
+    ]
+    assert narrow_symbol.width == 1299
+
+    # EAW=W の記号は jp_width、zero-widthのglyphは幅を触らない.
+    assert wide_symbol.width == 1849
+    assert zero_width.width == 0
 
     assert empty.transforms == []
     assert font.selection.selected == [empty]
