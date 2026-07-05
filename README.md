@@ -188,6 +188,17 @@ make test
 `make lint` は `ruff format --check` と `ruff check` を実行します。
 `make test` は `pytest` を実行します。
 
+### 新しい日本語フォントを追加するときの作業
+
+1. `fonts/{FontName}/` に `Regular` と `Bold` のフォントファイル、ライセンスファイルを追加します。
+2. `config/plex.yaml` を元に `config/{font}.yaml` を追加し、`jp_identifier` と `fonts.jp` を変更します。
+3. `variants` の `jp_width` / `jp_scale` / `os2_ascent` / `os2_descent` を調整します。
+4. `make generate CONFIG=config/{font}.yaml` で全 variant / 全 style を生成します。
+5. `make print FONT=dist/{familyname}/{familyname}-Regular.ttf TEXT="Roboto Mono 日本語 123" OUT=preview.pdf` で表示を確認します。
+6. macOS で確認する場合は `make reinstall-macos-fonts OUTPUT=dist` でインストール済みフォントを入れ替えます。
+7. `make lint` と `make test` を実行します。
+8. README の生成例や配布対象を変える必要がある場合は、該当箇所を更新します。
+
 ## 参考
 
 - [SF Mono を使って最高のプログラミング用フォントを作った話 - Qiita](https://qiita.com/delphinus/items/f472eb04ff91daf44274)
