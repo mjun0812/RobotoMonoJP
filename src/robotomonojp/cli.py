@@ -65,13 +65,12 @@ def print_command(
     font_path: Path = typer.Argument(..., exists=True, dir_okay=False, readable=True),
     sample: str = typer.Argument("", help="レンダリングする文字列."),
     output: Path = typer.Option(..., "-o", "--output"),
-    size: list[int] | None = typer.Option(None, "--size", help="レンダリングpt (複数指定可)."),
+    size: int | None = typer.Option(None, "--size", help="レンダリングpt."),
 ) -> None:
-    """指定フォントで文字列を複数サイズのPDFにレンダリングする."""
-    from .printer import DEFAULT_SIZES, print_pdf
+    """指定フォントで文字列をPDFにレンダリングする."""
+    from .printer import print_pdf
 
-    sizes = tuple(size) if size else DEFAULT_SIZES
-    result = print_pdf(font_path, sample, output, sizes=sizes)
+    result = print_pdf(font_path, sample, output, size=size)
     typer.echo(f"wrote {result}")
 
 

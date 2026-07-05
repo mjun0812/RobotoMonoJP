@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import shutil
 import tempfile
+import unicodedata
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -125,6 +126,35 @@ def _new_font(
     return font
 
 
+# 曖昧幅記号のinkに許すセル幅の割合. 残りは左右の余白になる.
+SYMBOL_INK_RATIO = 0.92
+
+
+def _normalize_symbol_width(glyph: Any, en_width: int, jp_width: int) -> None:
+    """East Asian Widthに基づき、記号glyphの幅をTerminalのセル幅に合わせる.
+
+    W/F (全角) は jp_width にする。それ以外 (曖昧幅・中立を含む) はTerminalが
+    1セルで扱うため en_width に収める。縮小率はadvanceではなくink (bbox) 基準で
+    決めてglyphができるだけ大きく残るようにし、inkをセル中央に寄せる。
+    """
+    if glyph.width == 0:
+        return
+    if unicodedata.east_asian_width(chr(glyph.encoding)) in ("W", "F"):
+        glyph.width = jp_width
+        return
+    xmin, _, xmax, _ = glyph.boundingBox()
+    ink_width = xmax - xmin
+    if ink_width > 0:
+        max_ink_width = en_width * SYMBOL_INK_RATIO
+        if ink_width > max_ink_width:
+            shrink = max_ink_width / ink_width
+            glyph.transform(psMat.scale(shrink, shrink))
+            xmin *= shrink
+            xmax *= shrink
+        glyph.transform(psMat.translate((en_width - xmin - xmax) / 2, 0))
+    glyph.width = en_width
+
+
 def _load_jp_font(
     path: Path,
     ascent: int,
@@ -159,6 +189,8 @@ def _load_jp_font(
             glyph.width = en_width
         elif glyph.encoding in params.FULLWIDTH_CODES_LIST:
             glyph.width = jp_width
+        elif 0 <= glyph.encoding <= 0x10FFFF:
+            _normalize_symbol_width(glyph, en_width, jp_width)
     return font
 
 

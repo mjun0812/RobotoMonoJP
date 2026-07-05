@@ -87,8 +87,8 @@ python -m robotomonojp print <font-path> "string" --output <output path>
 ```
 
 `<font-path>` はttf/otfファイルへの直接pathを受け取る。
-指定文字列を `[8, 10, 12, 14, 18, 24, 36]`pt の複数サイズでレンダリングし、A4縦1ページにまとめる。
-サイズリストは `--size` オプションで上書き可能。
+指定文字列を 24pt でレンダリングしてA4にまとめる。サイズは `--size` オプションで変更可能。
+FontForge の複数サイズ出力 (waterfall) は空のPDFを出力するバグがあるため、単一サイズとしている。
 
 ## config.yaml
 
@@ -129,7 +129,7 @@ os2_descent: 555
 ## Font生成パイプライン
 
 1. EN読み込み: RobotoMonoを開き、encoding以外は変更しない (旧 `main.py` と同じ)。
-2. JPスケール適用: 旧 `main.py` と同じく `ascent / 元JPフォントのascent + jp_scale_offset` 倍に拡縮し、半角カナ幅を `en_width`、全角幅を `jp_width` に合わせる。
+2. JPスケール適用: 旧 `main.py` と同じく `ascent / 元JPフォントのascent + jp_scale_offset` 倍に拡縮し、半角カナ幅を `en_width`、全角幅を `jp_width` に合わせる。かな・漢字以外の記号は East Asian Width で判定し、W/F は `jp_width`、曖昧幅 (A) を含むそれ以外はTerminalが1セルで扱うため縮小して `en_width` に収める。
 3. Merge: 新規空フォントに EN → JP の順で `mergeFonts` する (同名glyphはEN側を優先)。
 4. Italic生成: `Italic` / `BoldItalic` の場合は Regular / Bold から `italic_angle` で skew する (EN/JPとも)。
 5. リガチャ削除: 最終フォントから `liga` / `dlig` / `clig` / `hlig` / `calt` feature を持つglyphと `U+FB00-FB4F` を削除する。

@@ -79,8 +79,10 @@ python3 -m robotomonojp generate \
 ## フォント確認PDF
 
 生成済みフォントでサンプル文字列を PDF に出力できます。
+`TEXT` を省略すると、英数字・かな・漢字・全角/曖昧幅記号・Nerd Fonts (source別) を網羅したデフォルト文字列を使います。
 
 ```bash
+make print
 make print FONT=dist/{familyname}/{familyname}-Regular.ttf TEXT="Roboto Mono 日本語 123" OUT=preview.pdf
 ```
 
@@ -92,55 +94,7 @@ python3 -m robotomonojp print <font-path> "sample text" --output preview.pdf
 
 ## 日本語フォントを追加する手順
 
-1. 日本語フォントの `Regular` と `Bold` を用意します。
-   - `Italic` と `BoldItalic` は CLI が `Regular` / `Bold` から生成します。
-2. ライセンスを確認します。
-   - 生成物を配布する場合は、元フォントのライセンス表記と再配布条件を確認してください。
-3. フォントファイルをリポジトリ内に配置します。
-   - 例: `fonts/NotoSansJP/NotoSansJP-Regular.ttf`
-   - 例: `fonts/NotoSansJP/NotoSansJP-Bold.ttf`
-4. `config/*.yaml` を追加します。
-   - 既存の `config/plex.yaml` をコピーして、`jp_identifier` と `fonts.jp` を変更します。
-5. 必要に応じてメトリクスを調整します。
-   - `ascent + descent` は `em` と一致している必要があります。
-6. Docker 上で生成して確認します。
-
-設定例です。
-
-```yaml
-jp_identifier: Noto
-
-metadata:
-  vendor: mjun
-
-fonts:
-  en:
-    regular: fonts/RobotoMono/RobotoMono-Regular.ttf
-    bold: fonts/RobotoMono/RobotoMono-Bold.ttf
-  jp:
-    regular: fonts/NotoSansJP/NotoSansJP-Regular.ttf
-    bold: fonts/NotoSansJP/NotoSansJP-Bold.ttf
-
-italic_angle: -11
-ascent: 1638
-descent: 410
-em: 2048
-en_width: 1299
-jp_width: 1849
-jp_scale_offset: 0.10
-underline_pos: -200
-underline_height: 100
-os2_ascent: 2146
-os2_descent: 555
-```
-
-`jp_identifier` は family name に使われます。
-
-- 先頭大文字の ASCII 英数字にしてください。
-- 最大16文字です。
-- `Mono` は予約されているため使えません。
-
-`jp_identifier: Noto` の場合、出力 family name は `RobotoMonoNoto` になります。
+手順、調整すべき設定、確認すべき文字のガイドを [docs/add_japanese_font.md](docs/add_japanese_font.md) にまとめています。
 
 ## 設定ファイル
 
@@ -160,8 +114,8 @@ os2_descent: 555
 | `ascent`             | ○    | -              | ascent (typo ascent にも使用)                                                                    |
 | `descent`            | ○    | -              | descent (typo descent にも使用)                                                                  |
 | `em`                 | ○    | -              | em サイズ。`ascent + descent` と一致している必要がある                                           |
-| `en_width`           | ○    | -              | 半角カナ (U+FF61-FF9E) に設定する幅                                                              |
-| `jp_width`           | ○    | -              | 全角 glyph (ひらがな・カタカナ・漢字) に設定する幅                                               |
+| `en_width`           | ○    | -              | 半角カナ (U+FF61-FF9E) と曖昧幅記号 (`○` `→` など) に設定する幅                                  |
+| `jp_width`           | ○    | -              | 全角 glyph (ひらがな・カタカナ・漢字・全角記号) に設定する幅                                     |
 | `jp_scale_offset`    | ○    | -              | JP フォントのスケール倍率 (`ascent / 元JPフォントのascent`) に加算する offset                    |
 | `underline_pos`      | ○    | -              | 下線の位置                                                                                       |
 | `underline_height`   | ○    | -              | 下線の太さ                                                                                       |
@@ -184,14 +138,7 @@ make test
 
 ### 新しい日本語フォントを追加するときの作業
 
-1. `fonts/{FontName}/` に `Regular` と `Bold` のフォントファイル、ライセンスファイルを追加します。
-2. `config/plex.yaml` を元に `config/{font}.yaml` を追加し、`jp_identifier` と `fonts.jp` を変更します。
-3. `jp_width` / `jp_scale_offset` / `os2_ascent` / `os2_descent` を調整します。
-4. `make generate CONFIG=config/{font}.yaml` で全 style を生成します。
-5. `make print FONT=dist/{familyname}/{familyname}-Regular.ttf TEXT="Roboto Mono 日本語 123" OUT=preview.pdf` で表示を確認します。
-6. macOS で確認する場合は `make reinstall-macos-fonts FAMILY={familyname} OUTPUT=dist` でインストール済みフォントを入れ替えます。
-7. `make lint` と `make test` を実行します。
-8. README の生成例や配布対象を変える必要がある場合は、該当箇所を更新します。
+[docs/add_japanese_font.md](docs/add_japanese_font.md) を参照してください。
 
 ## 参考
 

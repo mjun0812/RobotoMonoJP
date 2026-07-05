@@ -2,6 +2,14 @@ IMAGE ?= robotomonojp:dev
 CONFIG ?= config/plex.yaml
 OUTPUT ?= dist
 FAMILY ?= RobotoMonoPlex
+
+# print のデフォルト. TEXT は 英数字 / ひらがな (濁点・半濁点) / カタカナ / 半角カナ /
+# 漢字 / 全角英数・全角記号 / 曖昧幅記号 / Nerd Fonts をsource別 (Pomicons, Powerline,
+# FA Extension, Weather, Seti-UI, Devicons, Codicons, Font Awesome, Octicons,
+# Font Logos, Material Design, IEC Power) に網羅する.
+FONT ?= $(OUTPUT)/$(FAMILY)/$(FAMILY)-Regular.ttf
+TEXT ?= AZaz09 あいがぱ アヴパ ｱｲｶﾞﾊﾟ 漢字日本語鬱 Ａ１。、「」￥ ○●■◆★→※±×÷ ⏻           󰀂
+OUT ?= preview.pdf
 DOCKER_RUN = docker run --rm -v $(PWD):/app -w /app $(IMAGE)
 
 .PHONY: help
@@ -11,7 +19,7 @@ help:
 	@echo "make generate CONFIG=config/{font}.yaml  # 8ファイル生成 (デフォルト config/plex.yaml)"
 	@echo "make generate-regular  # Regular だけ生成 (デバッグ用)"
 	@echo "make reinstall-macos-fonts FAMILY=...  # 既存FAMILYを削除してdistをmacOSに再インストール"
-	@echo "make print FONT=... TEXT=...  # フォント確認PDFを生成"
+	@echo "make print [FONT=... TEXT=... OUT=...]  # フォント確認PDFを生成 (デフォルトで全文字種を網羅)"
 	@echo "make lint            # ruff format --check + ruff check"
 	@echo "make format          # ruff format"
 	@echo "make test            # pytest"
