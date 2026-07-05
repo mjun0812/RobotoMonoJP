@@ -146,27 +146,28 @@ os2_descent: 555
 
 設定できる全項目は次の通りです。未知のキーはエラーになります。
 
-| キー                 | 必須 | デフォルト     | 説明                                                                                             |
-| -------------------- | ---- | -------------- | ------------------------------------------------------------------------------------------------ |
-| `jp_identifier`      | ○    | -              | family name に使う識別子。先頭大文字の ASCII 英数字、最大16文字。`Mono` は予約されているため不可 |
-| `familyname`         | -    | 命名規則で生成 | family name を明示指定して `RobotoMono{jp_identifier}` の命名規則を上書き                        |
-| `metadata.copyright` | -    | 組み込み値     | フォントに埋め込む copyright 文字列                                                              |
-| `metadata.vendor`    | -    | `mjun`         | OS/2 テーブルの vendor ID                                                                        |
-| `fonts.en.regular`   | ○    | -              | 英字フォント (Roboto Mono) の Regular のパス                                                     |
-| `fonts.en.bold`      | ○    | -              | 英字フォントの Bold のパス                                                                       |
-| `fonts.jp.regular`   | ○    | -              | 日本語フォントの Regular のパス                                                                  |
-| `fonts.jp.bold`      | ○    | -              | 日本語フォントの Bold のパス                                                                     |
-| `italic_angle`       | -    | `-11.0`        | `Italic` / `BoldItalic` 生成時に skew する角度 (度)                                              |
-| `ascent`             | ○    | -              | ascent (typo ascent にも使用)                                                                    |
-| `descent`            | ○    | -              | descent (typo descent にも使用)                                                                  |
-| `em`                 | ○    | -              | em サイズ。`ascent + descent` と一致している必要がある                                           |
-| `en_width`           | ○    | -              | 半角カナ (U+FF61-FF9E) に設定する幅                                                              |
-| `jp_width`           | ○    | -              | 全角 glyph (ひらがな・カタカナ・漢字) に設定する幅                                               |
-| `jp_scale_offset`    | ○    | -              | JP フォントのスケール倍率 (`ascent / 元JPフォントのascent`) に加算する offset                    |
-| `underline_pos`      | ○    | -              | 下線の位置                                                                                       |
-| `underline_height`   | ○    | -              | 下線の太さ                                                                                       |
-| `os2_ascent`         | ○    | -              | OS/2 winAscent と hhea ascent                                                                    |
-| `os2_descent`        | ○    | -              | OS/2 winDescent と hhea descent (正の値で指定)                                                   |
+| キー                     | 必須 | デフォルト     | 説明                                                                                                     |
+| ------------------------ | ---- | -------------- | -------------------------------------------------------------------------------------------------------- |
+| `jp_identifier`          | ○    | -              | family name に使う識別子。先頭大文字の ASCII 英数字、最大16文字。`Mono` は予約されているため不可         |
+| `familyname`             | -    | 命名規則で生成 | family name を明示指定して `RobotoMono{jp_identifier}` の命名規則を上書き                                |
+| `metadata.copyright`     | -    | 組み込み値     | フォントに埋め込む copyright 文字列                                                                      |
+| `metadata.vendor`        | -    | `mjun`         | OS/2 テーブルの vendor ID                                                                                |
+| `fonts.en.regular`       | ○    | -              | 英字フォント (Roboto Mono) の Regular のパス                                                             |
+| `fonts.en.bold`          | ○    | -              | 英字フォントの Bold のパス                                                                               |
+| `fonts.jp.regular`       | ○    | -              | 日本語フォントの Regular のパス                                                                          |
+| `fonts.jp.bold`          | ○    | -              | 日本語フォントの Bold のパス                                                                             |
+| `italic_angle`           | -    | `-11.0`        | `Italic` / `BoldItalic` 生成時に skew する角度 (度)                                                      |
+| `ascent`                 | ○    | -              | ascent (typo ascent にも使用)                                                                            |
+| `descent`                | ○    | -              | descent (typo descent にも使用)                                                                          |
+| `em`                     | ○    | -              | em サイズ。`ascent + descent` と一致している必要がある                                                   |
+| `en_width`               | ○    | -              | 半角カナ (U+FF61-FF9E) に設定する幅                                                                      |
+| `jp_width`               | ○    | -              | 全角 glyph (ひらがな・カタカナ・漢字) に設定する幅                                                       |
+| `jp_scale_offset`        | ○    | -              | JP フォントのスケール倍率 (`ascent / 元JPフォントのascent`) に加算する offset                            |
+| `underline_pos`          | ○    | -              | 下線の位置                                                                                               |
+| `underline_height`       | ○    | -              | 下線の太さ                                                                                               |
+| `os2_ascent`             | ○    | -              | OS/2 winAscent と hhea ascent                                                                            |
+| `os2_descent`            | ○    | -              | OS/2 winDescent と hhea descent (正の値で指定)                                                           |
+| `nerd_font_glyph_scales` | -    | `{}`           | Nerd Font patch後に指定glyphをink中心基準で拡大縮小する倍率マップ。キーは `"F179"` か `"E000-E00A"` 形式 |
 
 `Italic` / `BoldItalic` の入力フォントは指定不要で、`regular` / `bold` から生成します。
 

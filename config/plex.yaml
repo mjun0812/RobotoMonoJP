@@ -25,3 +25,8 @@ underline_pos: -200
 underline_height: 100
 os2_ascent: 2146
 os2_descent: 555
+
+# 公式font-patcherがv5.0.0の独自patcherより小さく埋め込むglyphの補正 (ink中心基準の倍率).
+nerd_font_glyph_scales:
+  "F179": 1.15 # nf-fa-apple
+  "F17A": 1.15 # nf-fa-windows

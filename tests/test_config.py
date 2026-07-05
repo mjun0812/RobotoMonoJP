@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from robotomonojp.config import Config, load_config
+from robotomonojp.config import Config, load_config, parse_codepoint_range
 
 VALID_MINIMAL: dict[str, object] = {
     "jp_identifier": "Plex",
@@ -54,6 +54,36 @@ def test_valid_jp_identifiers(identifier: str) -> None:
     data = {**VALID_MINIMAL, "jp_identifier": identifier}
     cfg = Config.model_validate(data)
     assert cfg.jp_identifier == identifier
+
+
+def test_parse_codepoint_range() -> None:
+    assert parse_codepoint_range("F179") == (0xF179, 0xF179)
+    assert parse_codepoint_range("U+F179") == (0xF179, 0xF179)
+    assert parse_codepoint_range("E000-E00A") == (0xE000, 0xE00A)
+
+
+@pytest.mark.parametrize("key", ["", "XYZ", "F179-", "E00A-E000", "F179 F17A"])
+def test_parse_codepoint_range_invalid(key: str) -> None:
+    with pytest.raises(ValueError):
+        parse_codepoint_range(key)
+
+
+def test_nerd_font_glyph_scales() -> None:
+    data = dict(VALID_MINIMAL)
+    data["nerd_font_glyph_scales"] = {"F179": 1.15, "E000-E00A": 0.9}
+    cfg = Config.model_validate(data)
+    assert cfg.nerd_font_glyph_scales == {"F179": 1.15, "E000-E00A": 0.9}
+
+
+@pytest.mark.parametrize(
+    "scales",
+    [{"XYZ": 1.15}, {"F179": 0}, {"F179": -1.0}],
+)
+def test_invalid_nerd_font_glyph_scales(scales: dict[str, float]) -> None:
+    data = dict(VALID_MINIMAL)
+    data["nerd_font_glyph_scales"] = scales
+    with pytest.raises(ValueError):
+        Config.model_validate(data)
 
 
 def test_em_must_match_ascent_plus_descent() -> None:

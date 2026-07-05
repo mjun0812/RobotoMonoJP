@@ -9,6 +9,21 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 JP_IDENTIFIER_PATTERN = re.compile(r"^[A-Z][A-Za-z0-9]{0,15}$")
+CODEPOINT_RANGE_PATTERN = re.compile(
+    r"^(?:U\+)?([0-9A-Fa-f]{1,6})(?:-(?:U\+)?([0-9A-Fa-f]{1,6}))?$"
+)
+
+
+def parse_codepoint_range(key: str) -> tuple[int, int]:
+    """'F179' や 'E000-E00A' 形式のキーを (start, end) のcodepointに変換する."""
+    matched = CODEPOINT_RANGE_PATTERN.match(key)
+    if matched is None:
+        raise ValueError(f"invalid codepoint range: {key!r} (expected 'F179' or 'E000-E00A')")
+    start = int(matched.group(1), 16)
+    end = int(matched.group(2), 16) if matched.group(2) else start
+    if start > end:
+        raise ValueError(f"invalid codepoint range: {key!r} (start > end)")
+    return start, end
 
 
 class MetadataConfig(BaseModel):
@@ -61,6 +76,19 @@ class Config(BaseModel):
     underline_height: int
     os2_ascent: int
     os2_descent: int
+    nerd_font_glyph_scales: dict[str, float] = Field(
+        default_factory=dict,
+        description="Nerd Font patch後に拡大縮小するglyph. キーは 'F179' か 'E000-E00A' 形式",
+    )
+
+    @field_validator("nerd_font_glyph_scales")
+    @classmethod
+    def _check_glyph_scales(cls, value: dict[str, float]) -> dict[str, float]:
+        for key, factor in value.items():
+            parse_codepoint_range(key)
+            if factor <= 0:
+                raise ValueError(f"scale for {key!r} must be positive: got {factor}")
+        return value
 
     @field_validator("jp_identifier")
     @classmethod

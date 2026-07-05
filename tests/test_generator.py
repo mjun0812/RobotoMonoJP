@@ -34,12 +34,17 @@ class FakeGlyph:
         """初期状態の glyph を作る."""
         self.encoding = encoding
         self.width = 500
+        self.bbox = (0.0, 0.0, 0.0, 0.0)
         self.isWorthOutputting = worth_outputting
         self.transforms: list[object] = []
 
     def transform(self, matrix: object) -> None:
         """適用された変換行列を記録する."""
         self.transforms.append(matrix)
+
+    def boundingBox(self) -> tuple[float, float, float, float]:
+        """ink の bbox (xmin, ymin, xmax, ymax) を返す."""
+        return self.bbox
 
 
 class FakeFont:
@@ -85,6 +90,11 @@ class FakePsMat:
     def scale(x: float, y: float) -> tuple[str, float, float]:
         """スケール行列の代わりにタプルを返す."""
         return ("scale", x, y)
+
+    @staticmethod
+    def translate(x: float, y: float) -> tuple[str, float, float]:
+        """平行移動行列の代わりにタプルを返す."""
+        return ("translate", x, y)
 
 
 def test_load_en_font_keeps_source_metrics(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -136,3 +146,40 @@ def test_load_jp_font_applies_old_proportional_scale(monkeypatch: pytest.MonkeyP
     assert empty.transforms == []
     assert font.selection.selected == [empty]
     assert font.cleared == 1
+
+
+class FakeIndexableFont:
+    """codepoint indexing だけを持つ font fake."""
+
+    def __init__(self, glyph_map: dict[int, FakeGlyph]) -> None:
+        """codepoint → glyph のマップを設定する."""
+        self._glyphs = glyph_map
+
+    def __getitem__(self, code: int) -> FakeGlyph:
+        """fontforge と同じく、存在しない codepoint は TypeError."""
+        if code not in self._glyphs:
+            raise TypeError(f"no glyph at {code}")
+        return self._glyphs[code]
+
+
+def test_scale_nerd_glyphs(monkeypatch: pytest.MonkeyPatch) -> None:
+    """指定codepointのglyphだけをink中心基準で拡大する."""
+    apple = FakeGlyph(0xF179)
+    apple.bbox = (100.0, 0.0, 1300.0, 1600.0)
+    other = FakeGlyph(0xF126)
+    empty_ink = FakeGlyph(0xF17A)  # inkが無いglyphは触らない
+    font = FakeIndexableFont({0xF179: apple, 0xF126: other, 0xF17A: empty_ink})
+    monkeypatch.setattr(generator, "psMat", FakePsMat)
+
+    # 存在しない F17B を含むレンジ指定でもエラーにならない.
+    generator._scale_nerd_glyphs(font, {"F179-F17B": 1.15})
+
+    center_x = (100.0 + 1300.0) / 2
+    center_y = (0.0 + 1600.0) / 2
+    assert apple.transforms == [
+        ("translate", -center_x, -center_y),
+        ("scale", 1.15, 1.15),
+        ("translate", center_x, center_y),
+    ]
+    assert empty_ink.transforms == []
+    assert other.transforms == []  # レンジ外は触らない

@@ -122,6 +122,9 @@ underline_pos: -200
 underline_height: 100
 os2_ascent: 2146
 os2_descent: 555
+
+nerd_font_glyph_scales: # 任意。Nerd Font patch後のglyph補正 (codepoint/レンジ → 倍率)
+  "F179": 1.15
 ```
 
 パーサは pydantic v2 でバリデーションする。
@@ -133,7 +136,7 @@ os2_descent: 555
 3. Merge: 新規空フォントに EN → JP の順で `mergeFonts` する (同名glyphはEN側を優先)。
 4. Italic生成: `Italic` / `BoldItalic` の場合は Regular / Bold から `italic_angle` で skew する (EN/JPとも)。
 5. リガチャ削除: 最終フォントから `liga` / `dlig` / `clig` / `hlig` / `calt` feature を持つglyphと `U+FB00-FB4F` を削除する。
-6. Nerd Font patch: submodule内の `font-patcher` を subprocessで呼び出し、`--complete` を適用する。
+6. Nerd Font patch: submodule内の `font-patcher` を subprocessで呼び出し、`--complete` を適用する。patch後、`nerd_font_glyph_scales` で指定されたglyphをadvanceを変えずにink中心基準で拡大縮小する (公式patcherが小さく埋め込むappleロゴなどの補正)。
 
 ## Metadata
 
