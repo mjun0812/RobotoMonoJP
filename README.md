@@ -53,13 +53,25 @@ make docker-build
 
 ## 生成
 
-`config/*.yaml` を指定して全 style を生成します。`CONFIG` を省略すると `config/plex.yaml` を使います。
+`CONFIG` を省略すると、`config/*.yaml` の全 family / 全 style を生成します。
+
+```bash
+make generate
+```
+
+特定の family だけ生成する場合は `CONFIG` を指定します。
 
 ```bash
 make generate CONFIG=config/{font}.yaml
 ```
 
-Regular だけを生成する場合は次のコマンドを使います。
+Regular だけを全 family で生成する場合は次のコマンドを使います。
+
+```bash
+make generate-regular
+```
+
+Regular だけを特定の family で生成する場合も `CONFIG` を指定できます。
 
 ```bash
 make generate-regular CONFIG=config/{font}.yaml

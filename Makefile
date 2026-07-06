@@ -1,5 +1,6 @@
 IMAGE ?= robotomonojp:dev
-CONFIG ?= config/plex.yaml
+CONFIG ?=
+CONFIGS ?= $(sort $(wildcard config/*.yaml))
 OUTPUT ?= dist
 FAMILY ?= RobotoMonoPlex
 
@@ -23,13 +24,15 @@ DOCKER_RUN = docker run --rm -v $(PWD):/app -w /app $(IMAGE)
 help:
 	@echo "make submodule-init  # Nerd Fonts submoduleを sparse-checkout 込みで初期化"
 	@echo "make docker-build    # Dockerイメージをbuild"
-	@echo "make generate CONFIG=config/{font}.yaml  # 8ファイル生成 (デフォルト config/plex.yaml)"
-	@echo "make generate-regular  # Regular だけ生成 (デバッグ用)"
+	@echo "make generate        # config/*.yaml の全familyを生成"
+	@echo "make generate CONFIG=config/{font}.yaml  # 指定familyだけ生成"
+	@echo "make generate-regular  # config/*.yaml の全familyで Regular だけ生成"
 	@echo "make install         # dist内の全フォントをインストール (macOS/Linux)"
 	@echo "make uninstall       # dist内のfamilyに対応するインストール済みフォントを削除"
 	@echo "make reinstall       # uninstall + install"
 	@echo "make print [FONT=... TEXT=... OUT=...]  # フォント確認PDFを生成 (デフォルトで全文字種を網羅)"
 	@echo "make lint            # ruff format --check + ruff check"
+	@echo "make typecheck       # ty check"
 	@echo "make format          # ruff format"
 	@echo "make test            # pytest"
 
@@ -46,11 +49,27 @@ docker-build:
 
 .PHONY: generate
 generate:
-	$(DOCKER_RUN) python3 -m robotomonojp generate -c $(CONFIG) -o $(OUTPUT)
+	@set -eu; \
+	if [ -n "$(CONFIG)" ]; then \
+		$(DOCKER_RUN) python3 -m robotomonojp generate -c "$(CONFIG)" -o "$(OUTPUT)"; \
+	else \
+		if [ -z "$(CONFIGS)" ]; then echo "no config files found"; exit 1; fi; \
+		for config in $(CONFIGS); do \
+			$(DOCKER_RUN) python3 -m robotomonojp generate -c "$$config" -o "$(OUTPUT)"; \
+		done; \
+	fi
 
 .PHONY: generate-regular
 generate-regular:
-	$(DOCKER_RUN) python3 -m robotomonojp generate -c $(CONFIG) -o $(OUTPUT) --style Regular
+	@set -eu; \
+	if [ -n "$(CONFIG)" ]; then \
+		$(DOCKER_RUN) python3 -m robotomonojp generate -c "$(CONFIG)" -o "$(OUTPUT)" --style Regular; \
+	else \
+		if [ -z "$(CONFIGS)" ]; then echo "no config files found"; exit 1; fi; \
+		for config in $(CONFIGS); do \
+			$(DOCKER_RUN) python3 -m robotomonojp generate -c "$$config" -o "$(OUTPUT)" --style Regular; \
+		done; \
+	fi
 
 .PHONY: print
 print:
@@ -91,6 +110,10 @@ reinstall: uninstall install
 lint:
 	uvx ruff format --check .
 	uvx ruff check .
+
+.PHONY: typecheck
+typecheck:
+	uvx ty check
 
 .PHONY: format
 format:

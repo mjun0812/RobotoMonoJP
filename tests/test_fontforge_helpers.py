@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from robotomonojp import fontforge_helpers
 
 
@@ -50,7 +52,7 @@ class FakePsMat:
         return ("compose", first, second)
 
 
-def test_resize_all_scale_sets_variant_widths(monkeypatch: object) -> None:
+def test_resize_all_scale_sets_variant_widths(monkeypatch: pytest.MonkeyPatch) -> None:
     """JP glyph の full/half width を variant 設定値に合わせる."""
     glyphs = [FakeGlyph(2048), FakeGlyph(1024), FakeGlyph(777)]
     font = FakeFont(2048, glyphs)

@@ -5,10 +5,14 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
+import pytest
+
 from robotomonojp import patcher
 
 
-def test_font_patcher_preserves_source_names(tmp_path: Path, monkeypatch: object) -> None:
+def test_font_patcher_preserves_source_names(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     input_font = tmp_path / "Input.ttf"
     input_font.write_bytes(b"font")
     nerd_fonts_root = tmp_path / "nerd-fonts"

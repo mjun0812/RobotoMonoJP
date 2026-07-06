@@ -29,6 +29,15 @@ extend-exclude = ["old", "vendor"]
 select = ["E", "F", "I", "UP", "B", "SIM"]
 ignore = ["E501", "B008"]  # B008: typerのOption/Argument呼び出しがdefault引数になる
 
+[tool.ty.src]
+include = ["src", "tests"]
+
+[tool.ty.environment]
+extra-paths = ["./src"]
+
+[tool.ty.analysis]
+allowed-unresolved-imports = ["fontforge", "psMat"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
