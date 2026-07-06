@@ -2,36 +2,22 @@
 
 ![Preview](docs/images/font_preview.png)
 
-Roboto Mono と日本語フォントを合成し、Nerd Fonts の glyph を追加したプログラミング用フォントを生成する CLI です。
+Roboto Mono と日本語フォントを合成し、Nerd Fonts の glyph を追加したプログラミング用フォントを生成します。
+
+## フォント
 
 Download: <https://github.com/mjun0812/RobotoMonoJP/releases>
 
-## 生成されるフォント
+| family             | 日本語フォント      | config                 |
+| ------------------ | ------------------- | ---------------------- |
+| RobotoMonoPlex     | IBM Plex Sans JP    | `config/plex.yaml`     |
+| RobotoMonoBizUd    | BIZ UDGothic        | `config/bizud.yaml`    |
+| RobotoMonoLineSeed | LINE Seed JP        | `config/lineseed.yaml` |
+| RobotoMonoNoto     | Noto Sans JP        | `config/noto.yaml`     |
+| RobotoMonoZenKaku  | Zen Kaku Gothic New | `config/zenkaku.yaml`  |
+| RobotoMonoGenJyuu  | 源柔ゴシック        | `config/genjyuu.yaml`  |
 
-`config.yaml` の `jp_identifier` から family name を決定します。
-
-例として `jp_identifier: Plex` の場合、`RobotoMonoPlex` を生成します。
-Roboto Mono 由来の幅を維持したまま日本語フォントを合成します。
-
-現在、次の 6 family が生成可能です。
-
-| config                 | family             | 日本語フォント      |
-| ---------------------- | ------------------ | ------------------- |
-| `config/plex.yaml`     | RobotoMonoPlex     | IBM Plex Sans JP    |
-| `config/bizud.yaml`    | RobotoMonoBizUd    | BIZ UDGothic        |
-| `config/lineseed.yaml` | RobotoMonoLineSeed | LINE Seed JP        |
-| `config/noto.yaml`     | RobotoMonoNoto     | Noto Sans JP        |
-| `config/zenkaku.yaml`  | RobotoMonoZenKaku  | Zen Kaku Gothic New |
-| `config/genjyuu.yaml`  | RobotoMonoGenJyuu  | 源柔ゴシック        |
-
-`Regular` / `Bold` / `Italic` / `BoldItalic` の各 style で `ttf` と `otf` を出力し、合計 8 ファイルになります。
-
-出力先は次の形式です。
-
-```text
-dist/{familyname}/{familyname}-{style}.ttf
-dist/{familyname}/{familyname}-{style}.otf
-```
+`Regular` / `Bold` / `Italic` / `BoldItalic` の各 style で `ttf` と `otf` を準備しています。
 
 ## 必要なもの
 
@@ -115,9 +101,17 @@ make print FONT=dist/{familyname}/{familyname}-Regular.ttf TEXT="Roboto Mono 日
 python3 -m robotomonojp print <font-path> "sample text" --output preview.pdf
 ```
 
-## 日本語フォントを追加する手順
+## アイキャッチ生成
 
-手順、調整すべき設定、確認すべき文字のガイドを [docs/add_japanese_font.md](docs/add_japanese_font.md) にまとめています。
+指定フォントの glyph を SVG path に変換して埋め込んだ、terminal 風のアイキャッチを生成できます。
+閲覧環境にフォントが無くても指定フォントの字形で表示されます。
+
+```bash
+uv run robotomonojp eyecatch dist/{familyname}/{familyname}-Regular.ttf -o eyecatch.svg
+```
+
+- `-o` / `--output`: 出力先SVG。デフォルトは `eyecatch.svg`
+- `--title`: タイトル文字列。未指定ならフォントの family 名
 
 ## 設定ファイル
 

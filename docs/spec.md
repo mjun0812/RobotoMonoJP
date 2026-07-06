@@ -90,6 +90,16 @@ python -m robotomonojp print <font-path> "string" --output <output path>
 指定文字列を 24pt でレンダリングしてA4にまとめる。サイズは `--size` オプションで変更可能。
 FontForge の複数サイズ出力 (waterfall) は空のPDFを出力するバグがあるため、単一サイズとしている。
 
+### eyecatch
+
+terminal風のアイキャッチSVGを出力する。
+
+```bash
+python -m robotomonojp eyecatch <font-path> -o <output path> [--title TEXT]
+```
+
+指定フォントのglyph outlineを fontTools でSVG pathに変換して埋め込むため、閲覧環境にフォントが無くても指定フォントの字形で表示される。タイトル未指定時はフォントのfamily名を使う。fontforge非依存のためDocker外でも実行できる。
+
 ## config.yaml
 
 トップレベルにメタデータとメトリクスをフラットに持つ。
@@ -177,6 +187,7 @@ GitHub Actionsで並列jobを走らせる。
 - Config validation: `pydantic` v2
 - YAML: `PyYAML`
 - Font生成: `fontforge` (apt), `psMat` (fontforge同梱)
+- アイキャッチ生成: `fonttools`
 
 ## Reference
 
