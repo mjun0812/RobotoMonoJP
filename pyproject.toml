@@ -27,7 +27,7 @@ extend-exclude = ["old", "vendor"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
-ignore = ["E501", "B008"]  # B008: typerのOption/Argument呼び出しがdefault引数になる
+ignore = ["E501", "B008"] # B008: typerのOption/Argument呼び出しがdefault引数になる
 
 [tool.ty.src]
 include = ["src", "tests"]

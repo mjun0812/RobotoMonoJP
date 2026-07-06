@@ -30,6 +30,7 @@ help:
 	@echo "make install         # dist内の全フォントをインストール (macOS/Linux)"
 	@echo "make uninstall       # dist内のfamilyに対応するインストール済みフォントを削除"
 	@echo "make reinstall       # uninstall + install"
+	@echo "make clean           # distを削除"
 	@echo "make print [FONT=... TEXT=... OUT=...]  # フォント確認PDFを生成 (デフォルトで全文字種を網羅)"
 	@echo "make lint            # ruff format --check + ruff check"
 	@echo "make typecheck       # ty check"
@@ -105,6 +106,10 @@ uninstall:
 
 .PHONY: reinstall
 reinstall: uninstall install
+
+.PHONY: clean
+clean:
+	rm -rf "$(OUTPUT)"
 
 .PHONY: lint
 lint:
