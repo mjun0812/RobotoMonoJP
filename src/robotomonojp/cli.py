@@ -74,6 +74,21 @@ def print_command(
     typer.echo(f"wrote {result}")
 
 
+@app.command()
+def eyecatch(
+    font_path: Path = typer.Argument(..., exists=True, dir_okay=False, readable=True),
+    output: Path = typer.Option(Path("eyecatch.svg"), "-o", "--output"),
+    title: str | None = typer.Option(
+        None, "--title", help="タイトル。未指定ならフォントのfamily名."
+    ),
+) -> None:
+    """指定フォントでterminal風のアイキャッチSVGを生成する."""
+    from .eyecatch import generate_eyecatch
+
+    result = generate_eyecatch(font_path, output, title=title)
+    typer.echo(f"wrote {result}")
+
+
 def main() -> None:
     """`robotomonojp` entrypoint (project.scripts から呼ばれる)."""
     app()

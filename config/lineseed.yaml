@@ -11,8 +11,8 @@ fonts:
     regular: fonts/RobotoMono/RobotoMono-Regular.ttf
     bold: fonts/RobotoMono/RobotoMono-Bold.ttf
   jp:
-    regular: fonts/LINESeedJP/LINESeedJP-Thin.ttf
-    bold: fonts/LINESeedJP/LINESeedJP-Regular.ttf
+    regular: fonts/LINESeedJP/LINESeedJP-Regular.ttf
+    bold: fonts/LINESeedJP/LINESeedJP-Bold.ttf
 
 italic_angle: -11
 ascent: 1638
@@ -25,4 +25,3 @@ underline_pos: -200
 underline_height: 100
 os2_ascent: 2146
 os2_descent: 555
-

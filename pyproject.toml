@@ -5,7 +5,7 @@ description = "RobotoMono + Japanese Font + Nerd Font 合成フォント生成CL
 readme = "README.md"
 authors = [{ name = "Junya Morioka", email = "mjun@mjunya.com" }]
 requires-python = ">=3.12"
-dependencies = ["typer>=0.12", "pydantic>=2.5", "pyyaml>=6.0"]
+dependencies = ["typer>=0.12", "pydantic>=2.5", "pyyaml>=6.0", "fonttools>=4.50"]
 
 [project.scripts]
 robotomonojp = "robotomonojp.cli:main"
@@ -27,7 +27,7 @@ extend-exclude = ["old", "vendor"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
-ignore = ["E501", "B008"]  # B008: typerのOption/Argument呼び出しがdefault引数になる
+ignore = ["E501", "B008"] # B008: typerのOption/Argument呼び出しがdefault引数になる
 
 [tool.ty.src]
 include = ["src", "tests"]
