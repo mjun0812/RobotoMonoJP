@@ -8,6 +8,10 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
+    # HOMEBREW_TAP_TOKEN は environment secret として homebrew-tap に登録する.
+    # environment を通じて解決されるため、他 workflow から誤って参照されない。
+    # 未設定の場合は Bump Homebrew tap step が skip されるだけで release 自体は成功する。
+    environment: homebrew-tap
     permissions:
       contents: write
     steps:
@@ -42,6 +46,19 @@ jobs:
               python3 -m robotomonojp generate -c "$config" -o dist
           done
 
+      - name: Bundle TTFs for Homebrew cask
+        id: bundle
+        run: |
+          shopt -s globstar nullglob
+          mkdir -p bundle
+          cp dist/**/*.ttf bundle/
+          bundle_name="RobotoMonoJP-Fonts-${GITHUB_REF_NAME}.zip"
+          (cd bundle && zip -q "../$bundle_name" *.ttf)
+          bundle_sha=$(sha256sum "$bundle_name" | awk '{print $1}')
+          echo "name=$bundle_name" >> "$GITHUB_OUTPUT"
+          echo "sha256=$bundle_sha" >> "$GITHUB_OUTPUT"
+          echo "bundle=$bundle_name sha256=$bundle_sha"
+
       - name: Upload release assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -50,4 +67,37 @@ jobs:
           gh release create "$GITHUB_REF_NAME" \
             --title "$GITHUB_REF_NAME" \
             --generate-notes \
-            dist/**/*.ttf dist/**/*.otf
+            dist/**/*.ttf dist/**/*.otf "${{ steps.bundle.outputs.name }}"
+
+      - name: Bump Homebrew tap
+        if: ${{ env.HOMEBREW_TAP_TOKEN != '' }}
+        env:
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          BUNDLE_SHA256: ${{ steps.bundle.outputs.sha256 }}
+        run: |
+          set -eu
+          version="${GITHUB_REF_NAME#v}"
+          tap_dir="$(mktemp -d)"
+          git clone "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/mjun0812/homebrew-roboto-mono-jp.git" "$tap_dir"
+          cask="$tap_dir/Casks/font-roboto-mono-jp.rb"
+          python3 - "$cask" "$version" "$BUNDLE_SHA256" <<'PY'
+          import re
+          import sys
+          from pathlib import Path
+
+          path, version, sha = sys.argv[1], sys.argv[2], sys.argv[3]
+          text = Path(path).read_text(encoding="utf-8")
+          text = re.sub(r'version "[^"]+"', f'version "{version}"', text, count=1)
+          text = re.sub(r'sha256 "[^"]+"', f'sha256 "{sha}"', text, count=1)
+          Path(path).write_text(text, encoding="utf-8")
+          PY
+          cd "$tap_dir"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet; then
+            echo "cask already at $version, skip"
+            exit 0
+          fi
+          git add Casks/font-roboto-mono-jp.rb
+          git commit -m "chore: bump font-roboto-mono-jp to $version"
+          git push origin HEAD:main
