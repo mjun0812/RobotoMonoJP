@@ -18,6 +18,9 @@ endif
 FONT ?= $(OUTPUT)/$(FAMILY)/$(FAMILY)-Regular.ttf
 TEXT ?= AZaz09 あいがぱ アヴパ ｱｲｶﾞﾊﾟ 漢字日本語鬱 Ａ１。、「」￥ ○●■◆★→※±×÷ ⏻           󰀂
 OUT ?= preview.pdf
+EYECATCH ?= eyecatch.svg
+EYECATCH_DIR ?= docs/images
+TITLE ?=
 DOCKER_RUN = docker run --rm -v $(PWD):/app -w /app $(IMAGE)
 
 .PHONY: help
@@ -32,6 +35,8 @@ help:
 	@echo "make reinstall       # uninstall + install"
 	@echo "make clean           # distを削除"
 	@echo "make print [FONT=... TEXT=... OUT=...]  # フォント確認PDFを生成 (デフォルトで全文字種を網羅)"
+	@echo "make eyecatch        # dist内の全RegularフォントのアイキャッチSVGをdocs/imagesへ生成"
+	@echo "make eyecatch FONT=... EYECATCH=...  # 指定フォントだけアイキャッチSVGを生成"
 	@echo "make lint            # ruff format --check + ruff check"
 	@echo "make typecheck       # ty check"
 	@echo "make format          # ruff format"
@@ -75,6 +80,25 @@ generate-regular:
 .PHONY: print
 print:
 	$(DOCKER_RUN) python3 -m robotomonojp print $(FONT) "$(TEXT)" -o $(OUT)
+
+.PHONY: eyecatch
+eyecatch:
+	@set -eu; \
+	if [ "$(origin FONT)" != "file" ]; then \
+		if [ -n "$(TITLE)" ]; then \
+			uv run robotomonojp eyecatch "$(FONT)" -o "$(EYECATCH)" --title "$(TITLE)"; \
+		else \
+			uv run robotomonojp eyecatch "$(FONT)" -o "$(EYECATCH)"; \
+		fi; \
+	else \
+		fonts=$$(find "$(OUTPUT)" -type f -name '*-Regular.ttf' | sort); \
+		if [ -z "$$fonts" ]; then echo "no Regular fonts found in $(OUTPUT)"; exit 1; fi; \
+		mkdir -p "$(EYECATCH_DIR)"; \
+		for font in $$fonts; do \
+			family=$$(basename "$$font" -Regular.ttf); \
+			uv run robotomonojp eyecatch "$$font" -o "$(EYECATCH_DIR)/$$family.svg"; \
+		done; \
+	fi
 
 .PHONY: install
 install:

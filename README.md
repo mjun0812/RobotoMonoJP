@@ -73,6 +73,16 @@ python3 -m robotomonojp print <font-path> "sample text" --output preview.pdf
 閲覧環境にフォントが無くても指定フォントの字形で表示されます。
 
 ```bash
+make eyecatch
+make eyecatch FONT=dist/{familyname}/{familyname}-Regular.ttf EYECATCH=eyecatch.svg
+```
+
+`make eyecatch` は `dist` 配下の全 `*-Regular.ttf` を対象に、`docs/images/{familyname}.svg` を生成します。
+`FONT` を指定した場合は、そのフォントだけを `EYECATCH` に出力します。
+
+直接実行する場合は次の形式です。
+
+```bash
 uv run robotomonojp eyecatch dist/{familyname}/{familyname}-Regular.ttf -o eyecatch.svg
 ```
 
@@ -120,7 +130,7 @@ make test
 `make lint` は `ruff format --check` と `ruff check` を実行します。
 `make test` は `pytest` を実行します。
 
-## 新しい日本語フォントを追加するときの作業
+## 新しい日本語フォントの追加
 
 [docs/add_japanese_font.md](docs/add_japanese_font.md) を参照してください。
 
