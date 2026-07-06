@@ -11,8 +11,8 @@ fonts:
     regular: fonts/RobotoMono/RobotoMono-Regular.ttf
     bold: fonts/RobotoMono/RobotoMono-Bold.ttf
   jp:
-    regular: fonts/LINESeedJP/LINESeedJP-Regular.ttf
-    bold: fonts/LINESeedJP/LINESeedJP-Bold.ttf
+    regular: fonts/LINESeedJP/LINESeedJP-Thin.ttf
+    bold: fonts/LINESeedJP/LINESeedJP-Regular.ttf
 
 italic_angle: -11
 ascent: 1638
@@ -26,7 +26,3 @@ underline_height: 100
 os2_ascent: 2146
 os2_descent: 555
 
-# 公式font-patcherがv5.0.0の独自patcherより小さく埋め込むglyphの補正 (ink中心基準の倍率).
-nerd_font_glyph_scales:
-  "F179": 1.15 # nf-fa-apple
-  "F17A": 1.15 # nf-fa-windows
