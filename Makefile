@@ -3,6 +3,13 @@ CONFIG ?= config/plex.yaml
 OUTPUT ?= dist
 FAMILY ?= RobotoMonoPlex
 
+# フォントのインストール先 (macOS / Linux).
+ifeq ($(shell uname -s),Darwin)
+FONT_DIR ?= $(HOME)/Library/Fonts
+else
+FONT_DIR ?= $(HOME)/.local/share/fonts
+endif
+
 # print のデフォルト. TEXT は 英数字 / ひらがな (濁点・半濁点) / カタカナ / 半角カナ /
 # 漢字 / 全角英数・全角記号 / 曖昧幅記号 / Nerd Fonts をsource別 (Pomicons, Powerline,
 # FA Extension, Weather, Seti-UI, Devicons, Codicons, Font Awesome, Octicons,
@@ -18,7 +25,9 @@ help:
 	@echo "make docker-build    # Dockerイメージをbuild"
 	@echo "make generate CONFIG=config/{font}.yaml  # 8ファイル生成 (デフォルト config/plex.yaml)"
 	@echo "make generate-regular  # Regular だけ生成 (デバッグ用)"
-	@echo "make reinstall-macos-fonts  # dist内の全familyをmacOSに再インストール"
+	@echo "make install         # dist内の全フォントをインストール (macOS/Linux)"
+	@echo "make uninstall       # dist内のfamilyに対応するインストール済みフォントを削除"
+	@echo "make reinstall       # uninstall + install"
 	@echo "make print [FONT=... TEXT=... OUT=...]  # フォント確認PDFを生成 (デフォルトで全文字種を網羅)"
 	@echo "make lint            # ruff format --check + ruff check"
 	@echo "make format          # ruff format"
@@ -47,31 +56,36 @@ generate-regular:
 print:
 	$(DOCKER_RUN) python3 -m robotomonojp print $(FONT) "$(TEXT)" -o $(OUT)
 
-.PHONY: reinstall-macos-fonts
-reinstall-macos-fonts:
+.PHONY: install
+install:
 	@set -eu; \
-	font_dir="$$HOME/Library/Fonts"; \
-	families=$$(cd "$(OUTPUT)" && ls -d */ | tr -d '/'); \
-	echo "Existing fonts in $$font_dir:"; \
-	for family in $$families; do \
-		find "$$font_dir" -maxdepth 1 -type f \( -name "$$family*.ttf" -o -name "$$family*.otf" \) -print; \
-	done | sort; \
-	echo; \
-	echo "Fonts to install from $(OUTPUT):"; \
+	mkdir -p "$(FONT_DIR)"; \
+	echo "Installing fonts from $(OUTPUT) to $(FONT_DIR):"; \
 	find "$(OUTPUT)" -type f \( -name '*.ttf' -o -name '*.otf' \) -print | sort; \
-	echo; \
-	printf "Type 'reinstall' to delete existing fonts and install dist fonts: "; \
+	find "$(OUTPUT)" -type f \( -name '*.ttf' -o -name '*.otf' \) -exec cp {} "$(FONT_DIR)"/ \;; \
+	if command -v fc-cache >/dev/null 2>&1; then fc-cache -f "$(FONT_DIR)" || true; fi; \
+	echo "done"
+
+.PHONY: uninstall
+uninstall:
+	@set -eu; \
+	families=$$(cd "$(OUTPUT)" && ls -d */ 2>/dev/null | tr -d '/'); \
+	if [ -z "$$families" ]; then echo "no font families found in $(OUTPUT)"; exit 1; fi; \
+	echo "Fonts to remove from $(FONT_DIR):"; \
+	for family in $$families; do \
+		find "$(FONT_DIR)" -maxdepth 1 -type f \( -name "$$family*.ttf" -o -name "$$family*.otf" \) -print; \
+	done | sort; \
+	printf "Type 'yes' to remove: "; \
 	read answer; \
-	test "$$answer" = "reinstall"; \
+	test "$$answer" = "yes"; \
 	for family in $$families; do \
-		find "$$font_dir" -maxdepth 1 -type f \( -name "$$family*.ttf" -o -name "$$family*.otf" \) -delete; \
+		find "$(FONT_DIR)" -maxdepth 1 -type f \( -name "$$family*.ttf" -o -name "$$family*.otf" \) -delete; \
 	done; \
-	find "$(OUTPUT)" -type f \( -name '*.ttf' -o -name '*.otf' \) -exec cp {} "$$font_dir"/ \;; \
-	if command -v fc-cache >/dev/null 2>&1; then fc-cache -f "$$font_dir" || true; fi; \
-	echo "Installed fonts:"; \
-	for family in $$families; do \
-		find "$$font_dir" -maxdepth 1 -type f \( -name "$$family*.ttf" -o -name "$$family*.otf" \) -print; \
-	done | sort
+	if command -v fc-cache >/dev/null 2>&1; then fc-cache -f "$(FONT_DIR)" || true; fi; \
+	echo "done"
+
+.PHONY: reinstall
+reinstall: uninstall install
 
 .PHONY: lint
 lint:
