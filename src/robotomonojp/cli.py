@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import typer
 
 from . import __version__
+
+if TYPE_CHECKING:
+    from .generator import BuildRequest
 
 app = typer.Typer(add_completion=False, no_args_is_help=True)
 
@@ -29,11 +34,19 @@ def _resolve_styles(styles: list[str] | None) -> list[str]:
     return styles
 
 
+def _build_request(request: BuildRequest) -> tuple[str, Path]:
+    """style 1件分を生成し、style名と出力pathを返す."""
+    from .generator import build
+
+    return request.style, build(request)
+
+
 @app.command()
 def generate(
     config: Path = typer.Option(..., "-c", "--config", exists=True, dir_okay=False, readable=True),
     output: Path = typer.Option(Path("dist"), "-o", "--output"),
     style: list[str] | None = StyleOption,
+    jobs: int = typer.Option(4, "--jobs", "-j", min=1, help="style生成の並列数."),
     no_nerd_font: bool = typer.Option(False, "--no-nerd-font", help="Nerd Font パッチをスキップ."),
     version_suffix: str = typer.Option(
         "", "--version-suffix", help="フォントversionに付与するsuffix."
@@ -41,22 +54,32 @@ def generate(
 ) -> None:
     """config.yaml から8ファイル (4 style × ttf/otf) を生成する."""
     from .config import load_config
-    from .generator import BuildRequest, build
+    from .generator import BuildRequest
 
     cfg = load_config(config)
     styles = _resolve_styles(style)
     version = f"{__version__}{version_suffix}"
 
+    requests = []
     for style_name in styles:
         typer.echo(f"[generate] style={style_name}")
-        request = BuildRequest(
-            config=cfg,
-            style=style_name,
-            version=version,
-            output_dir=output,
-            apply_nerd_font=not no_nerd_font,
+        requests.append(
+            BuildRequest(
+                config=cfg,
+                style=style_name,
+                version=version,
+                output_dir=output,
+                apply_nerd_font=not no_nerd_font,
+            )
         )
-        path = build(request)
+
+    if jobs == 1 or len(requests) == 1:
+        results = [_build_request(request) for request in requests]
+    else:
+        with ProcessPoolExecutor(max_workers=min(jobs, len(requests))) as executor:
+            results = list(executor.map(_build_request, requests))
+
+    for _, path in results:
         typer.echo(f"  -> {path}")
 
 

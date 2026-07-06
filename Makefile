@@ -3,6 +3,7 @@ CONFIG ?=
 CONFIGS ?= $(sort $(wildcard config/*.yaml))
 OUTPUT ?= dist
 FAMILY ?= RobotoMonoPlex
+JOBS ?= 4
 
 # フォントのインストール先 (macOS / Linux).
 ifeq ($(shell uname -s),Darwin)
@@ -57,12 +58,10 @@ docker-build:
 generate:
 	@set -eu; \
 	if [ -n "$(CONFIG)" ]; then \
-		$(DOCKER_RUN) python3 -m robotomonojp generate -c "$(CONFIG)" -o "$(OUTPUT)"; \
+		$(DOCKER_RUN) python3 -m robotomonojp generate -c "$(CONFIG)" -o "$(OUTPUT)" --jobs "$(JOBS)"; \
 	else \
 		if [ -z "$(CONFIGS)" ]; then echo "no config files found"; exit 1; fi; \
-		for config in $(CONFIGS); do \
-			$(DOCKER_RUN) python3 -m robotomonojp generate -c "$$config" -o "$(OUTPUT)"; \
-		done; \
+		printf '%s\n' $(CONFIGS) | xargs -I {} -P "$(JOBS)" sh -c '$(DOCKER_RUN) python3 -m robotomonojp generate -c "$$1" -o "$(OUTPUT)" --jobs 1' sh {}; \
 	fi
 
 .PHONY: generate-regular
@@ -72,9 +71,7 @@ generate-regular:
 		$(DOCKER_RUN) python3 -m robotomonojp generate -c "$(CONFIG)" -o "$(OUTPUT)" --style Regular; \
 	else \
 		if [ -z "$(CONFIGS)" ]; then echo "no config files found"; exit 1; fi; \
-		for config in $(CONFIGS); do \
-			$(DOCKER_RUN) python3 -m robotomonojp generate -c "$$config" -o "$(OUTPUT)" --style Regular; \
-		done; \
+		printf '%s\n' $(CONFIGS) | xargs -I {} -P "$(JOBS)" sh -c '$(DOCKER_RUN) python3 -m robotomonojp generate -c "$$1" -o "$(OUTPUT)" --style Regular --jobs 1' sh {}; \
 	fi
 
 .PHONY: print
