@@ -96,6 +96,15 @@ uv run robotomonojp eyecatch dist/{familyname}/{familyname}-Regular.ttf -o eyeca
 - `-o` / `--output`: 出力先SVG。デフォルトは `eyecatch.svg`
 - `--title`: タイトル文字列。未指定ならフォントの family 名
 
+## 静的HTMLプレビュー
+
+指定フォントを `@font-face` で読み込む静的HTMLを生成できます。
+OSにフォントをインストールせず、英数字・日本語・混在文・半角/全角スペース・記号をブラウザで確認できます。
+
+```bash
+uv run robotomonojp preview dist/{familyname}/{familyname}-Regular.ttf -o preview.html
+```
+
 ## 設定ファイル
 
 設定できる全項目は次の通りです。未知のキーはエラーになります。

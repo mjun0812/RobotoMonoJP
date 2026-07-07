@@ -36,6 +36,7 @@ help:
 	@echo "make reinstall       # uninstall + install"
 	@echo "make clean           # distを削除"
 	@echo "make print [FONT=... TEXT=... OUT=...]  # フォント確認PDFを生成 (デフォルトで全文字種を網羅)"
+	@echo "make preview FONT=...  # 静的HTMLプレビューを tmp/preview.html に生成"
 	@echo "make eyecatch        # dist内の全RegularフォントのアイキャッチSVGをdocs/imagesへ生成"
 	@echo "make eyecatch FONT=... EYECATCH=...  # 指定フォントだけアイキャッチSVGを生成"
 	@echo "make lint            # ruff format --check + ruff check"
@@ -77,6 +78,15 @@ generate-regular:
 .PHONY: print
 print:
 	$(DOCKER_RUN) python3 -m robotomonojp print $(FONT) "$(TEXT)" -o $(OUT)
+
+.PHONY: preview
+preview:
+	uv run robotomonojp preview "$(FONT)" -o tmp/preview.html
+	@case "$$(uname -s)" in \
+		Darwin) open tmp/preview.html ;; \
+		Linux) xdg-open tmp/preview.html ;; \
+		*) echo "preview written to tmp/preview.html" ;; \
+	esac
 
 .PHONY: eyecatch
 eyecatch:

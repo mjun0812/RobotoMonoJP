@@ -112,6 +112,21 @@ def eyecatch(
     typer.echo(f"wrote {result}")
 
 
+@app.command()
+def preview(
+    font_path: Path = typer.Argument(..., exists=True, dir_okay=False, readable=True),
+    output: Path = typer.Option(Path("preview.html"), "-o", "--output"),
+    title: str | None = typer.Option(
+        None, "--title", help="ページタイトル。未指定ならフォントのfamily名."
+    ),
+) -> None:
+    """指定フォントを確認する静的HTMLを生成する."""
+    from .preview import generate_preview
+
+    result = generate_preview(font_path, output, title=title)
+    typer.echo(f"wrote {result}")
+
+
 def main() -> None:
     """`robotomonojp` entrypoint (project.scripts から呼ばれる)."""
     app()
