@@ -72,6 +72,11 @@ class Config(BaseModel):
     jp_scale_offset: float = Field(
         ..., description="JPスケール (ascent / 元JPフォントのascent) に加算するoffset"
     )
+    jp_stroke_width: int = Field(
+        default=0,
+        ge=0,
+        description="JP glyphをmerge前に太らせるFontForge stroke幅。0なら補正しない",
+    )
     underline_pos: int
     underline_height: int
     os2_ascent: int

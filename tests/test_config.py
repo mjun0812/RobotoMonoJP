@@ -75,6 +75,25 @@ def test_nerd_font_glyph_scales() -> None:
     assert cfg.nerd_font_glyph_scales == {"F179": 1.15, "E000-E00A": 0.9}
 
 
+def test_jp_stroke_width_defaults_to_zero() -> None:
+    cfg = Config.model_validate(VALID_MINIMAL)
+    assert cfg.jp_stroke_width == 0
+
+
+def test_jp_stroke_width() -> None:
+    data = dict(VALID_MINIMAL)
+    data["jp_stroke_width"] = 8
+    cfg = Config.model_validate(data)
+    assert cfg.jp_stroke_width == 8
+
+
+def test_invalid_jp_stroke_width() -> None:
+    data = dict(VALID_MINIMAL)
+    data["jp_stroke_width"] = -1
+    with pytest.raises(ValueError):
+        Config.model_validate(data)
+
+
 @pytest.mark.parametrize(
     "scales",
     [{"XYZ": 1.15}, {"F179": 0}, {"F179": -1.0}],
