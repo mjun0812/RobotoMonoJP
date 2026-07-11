@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from robotomonojp.eyecatch import generate_eyecatch
+from robotomonojp.eyecatch import SAMPLE_LINES, generate_eyecatch
 
 FONT = Path("fonts/RobotoMono/RobotoMono-Regular.ttf")
 
@@ -21,3 +21,7 @@ def test_generate_eyecatch(tmp_path: Path) -> None:
 def test_generate_eyecatch_custom_title(tmp_path: Path) -> None:
     out = generate_eyecatch(FONT, tmp_path / "eyecatch.svg", title="MyFont")
     assert 'aria-label="MyFont"' in out.read_text(encoding="utf-8")
+
+
+def test_sample_lines_include_circled_numbers() -> None:
+    assert ("① ② ③ ④ ⑤ ⑥ ⑦ ⑧ ⑨ ⑩", "text") in SAMPLE_LINES

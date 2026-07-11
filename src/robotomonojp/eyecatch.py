@@ -28,7 +28,7 @@ CONTENT_X = 148
 
 TITLE_SIZE = 54
 BODY_SIZE = 32
-LINE_HEIGHT = 46
+LINE_HEIGHT = 40
 
 # Nerd Fonts行に載せるアイコン (Powerline, Devicons, Codicons, Font Awesome, Font Logos, IEC Power)
 NERD_ICON_CODES = (0xE0A0, 0xE0B0, 0xE702, 0xE718, 0xEA60, 0xF015, 0xF121, 0xF179, 0xF31B, 0x23FB)
@@ -40,6 +40,7 @@ SAMPLE_LINES: list[tuple[str, str]] = [
     ("ABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789", "text"),
     ("# Japanese", "accent"),
     ("あいうえお アイウエオ 漢字日本語 ｱｲｳｴｵ", "text"),
+    ("① ② ③ ④ ⑤ ⑥ ⑦ ⑧ ⑨ ⑩", "text"),
     ("# Nerd Fonts", "accent"),
     ("  ".join(chr(c) for c in NERD_ICON_CODES), "text"),
 ]
