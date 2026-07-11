@@ -33,6 +33,9 @@ class FakeGlyph:
     def __init__(self, encoding: int, *, worth_outputting: bool = True) -> None:
         """初期状態の glyph を作る."""
         self.encoding = encoding
+        self.glyphname = f"uni{encoding:04X}"
+        self.unicode = encoding
+        self.altuni: tuple[tuple[int, int, int], ...] | None = None
         self.width = 500
         self.bbox = (0.0, 0.0, 0.0, 0.0)
         self.isWorthOutputting = worth_outputting
@@ -50,17 +53,31 @@ class FakeGlyph:
 class FakeFont:
     """fontforge.font の最小 fake."""
 
-    def __init__(self, ascent: int, glyph_list: list[FakeGlyph]) -> None:
+    def __init__(self, ascent: int, glyph_list: list[FakeGlyph], *, em: int = 1000) -> None:
         """元フォントの ascent と glyph 一覧を設定する."""
         self.ascent = ascent
         self.descent = 0
-        self.em = 0
-        self.encoding = ""
+        self.em = em
+        self._encoding = ""
         self.selection = FakeSelection()
         self.cleared = 0
         self.overlap_removed = 0
         self.strokes: list[tuple[object, ...]] = []
         self._glyphs = glyph_list
+        self.reencoded_codepoints: dict[str, int] = {}
+
+    @property
+    def encoding(self) -> str:
+        """現在のencoding名を返す."""
+        return self._encoding
+
+    @encoding.setter
+    def encoding(self, value: str) -> None:
+        """encoding変更時のcodepoint再割り当てを再現する."""
+        self._encoding = value
+        for glyph in self._glyphs:
+            if glyph.glyphname in self.reencoded_codepoints:
+                glyph.encoding = self.reencoded_codepoints[glyph.glyphname]
 
     def unlinkReferences(self) -> None:
         """参照解除 (何もしない)."""
@@ -126,14 +143,14 @@ def test_load_jp_font_applies_old_proportional_scale(monkeypatch: pytest.MonkeyP
     fullwidth = FakeGlyph(0x3042)
     latin = FakeGlyph(0x0041)
     empty = FakeGlyph(0x0000, worth_outputting=False)
-    ambiguous = FakeGlyph(0x25CB)  # ○ (East Asian Width = A)
-    ambiguous.width = 1961
+    ambiguous = FakeGlyph(0x1234)
+    ambiguous.width = 1000
     ambiguous.bbox = (143.0, -20.0, 1818.0, 1500.0)
     narrow_symbol = FakeGlyph(0x2502)  # │ (inkがセル幅に収まる記号)
-    narrow_symbol.width = 1961
+    narrow_symbol.width = 500
     narrow_symbol.bbox = (700.0, 0.0, 900.0, 1200.0)
     wide_symbol = FakeGlyph(0x3007)  # 〇 (East Asian Width = W)
-    wide_symbol.width = 1961
+    wide_symbol.width = 1000
     zero_width = FakeGlyph(0x0300)  # combining mark
     zero_width.width = 0
     font = FakeFont(
@@ -149,6 +166,7 @@ def test_load_jp_font_applies_old_proportional_scale(monkeypatch: pytest.MonkeyP
             zero_width,
         ],
     )
+    font.reencoded_codepoints[ambiguous.glyphname] = 0x25CB
     FakeFontForge.opened = font
     monkeypatch.setattr(generator, "fontforge", FakeFontForge)
     monkeypatch.setattr(generator, "psMat", FakePsMat)
@@ -168,31 +186,21 @@ def test_load_jp_font_applies_old_proportional_scale(monkeypatch: pytest.MonkeyP
     assert (font.ascent, font.descent, font.em) == (1638, 410, 2048)
 
     expected_scale = 1638 / 880 + 0.10
-    for glyph in (hankaku, fullwidth, latin, wide_symbol, zero_width):
+    for glyph in (hankaku, fullwidth, latin, ambiguous, narrow_symbol, wide_symbol, zero_width):
         assert glyph.transforms == [("scale", expected_scale, expected_scale)]
 
     assert hankaku.width == 1299
     assert fullwidth.width == 1849
-    assert latin.width == 1299  # 曖昧幅・中立の記号は半角セルに正規化する
+    assert latin.width == 1299  # 元フォントで半角のglyphは半角セルに正規化する
 
-    # 曖昧幅 (EAW=A) でinkがはみ出すglyphは、ink基準で縮小して中央に寄せる.
-    shrink = (1299 * generator.SYMBOL_INK_RATIO) / (1818.0 - 143.0)
-    dx = (1299 - 143.0 * shrink - 1818.0 * shrink) / 2
-    assert ambiguous.transforms == [
-        ("scale", expected_scale, expected_scale),
-        ("scale", shrink, shrink),
-        ("translate", dx, 0),
-    ]
-    assert ambiguous.width == 1299
+    # 元フォントで全角の曖昧幅文字は、字形を縮小せず全角幅を維持する.
+    assert ambiguous.width == 1849
 
-    # inkがセル幅に収まる記号は縮小せず、中央寄せだけ行う.
-    assert narrow_symbol.transforms == [
-        ("scale", expected_scale, expected_scale),
-        ("translate", (1299 - 700.0 - 900.0) / 2, 0),
-    ]
+    # 元フォントで半角の記号は縮小せず、半角幅を設定する.
+    assert narrow_symbol.transforms == [("scale", expected_scale, expected_scale)]
     assert narrow_symbol.width == 1299
 
-    # EAW=W の記号は jp_width、zero-widthのglyphは幅を触らない.
+    # 元フォントで全角の記号は jp_width、zero-widthのglyphは幅を触らない.
     assert wide_symbol.width == 1849
     assert zero_width.width == 0
 
@@ -234,15 +242,57 @@ def test_apply_jp_stroke_width_skips_zero() -> None:
 class FakeIndexableFont:
     """codepoint indexing だけを持つ font fake."""
 
-    def __init__(self, glyph_map: dict[int, FakeGlyph]) -> None:
+    def __init__(self, glyph_map: dict[int | str, FakeGlyph]) -> None:
         """codepoint → glyph のマップを設定する."""
         self._glyphs = glyph_map
 
-    def __getitem__(self, code: int) -> FakeGlyph:
+    def __getitem__(self, code: int | str) -> FakeGlyph:
         """fontforge と同じく、存在しない codepoint は TypeError."""
         if code not in self._glyphs:
             raise TypeError(f"no glyph at {code}")
         return self._glyphs[code]
+
+
+class FakeMappingFont(FakeIndexableFont):
+    """unicode mapping のコピーに必要な操作を持つ font fake."""
+
+    def __init__(self, glyph_map: dict[int | str, FakeGlyph]) -> None:
+        """glyph map と selection を設定する."""
+        super().__init__(glyph_map)
+        self.selection = FakeSelection()
+        self.cleared = 0
+
+    def glyphs(self) -> list[FakeGlyph]:
+        """全glyphを返す."""
+        return list(self._glyphs.values())
+
+    def clear(self) -> None:
+        """glyph削除の呼び出し回数を記録する."""
+        self.cleared += 1
+
+
+def test_copy_unicode_mappings_keeps_variation_sequences() -> None:
+    """JP側のIVS mappingを最終フォントへ引き継ぐ."""
+    codepoint = 0x9089
+    variation_selector = 0xE0101
+    source_glyph = FakeGlyph(codepoint)
+    source_glyph.altuni = ((codepoint, variation_selector, 0),)
+    source_variant = FakeGlyph(-1)
+    source_variant.unicode = -1
+    source_variant.glyphname = "uni9089.aalt"
+    source_variant.altuni = ((codepoint, variation_selector + 1, 0),)
+    target_glyph = FakeGlyph(codepoint)
+    target_variant = FakeGlyph(-1)
+    target_variant.unicode = -1
+    target_variant.glyphname = source_variant.glyphname
+    source = FakeMappingFont({codepoint: source_glyph, source_variant.glyphname: source_variant})
+    target = FakeMappingFont({codepoint: target_glyph, target_variant.glyphname: target_variant})
+
+    generator._copy_unicode_mappings(target, source)
+
+    assert target_glyph.unicode == codepoint
+    assert target_glyph.altuni == ((codepoint, variation_selector, 0),)
+    assert target_variant.altuni == ((codepoint, variation_selector + 1, 0),)
 
 
 def test_scale_nerd_glyphs(monkeypatch: pytest.MonkeyPatch) -> None:

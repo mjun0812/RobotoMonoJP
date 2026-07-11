@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import shutil
 import tempfile
-import unicodedata
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -126,33 +125,16 @@ def _new_font(
     return font
 
 
-# 曖昧幅記号のinkに許すセル幅の割合. 残りは左右の余白になる.
-SYMBOL_INK_RATIO = 0.92
-
-
-def _normalize_symbol_width(glyph: Any, en_width: int, jp_width: int) -> None:
-    """East Asian Widthに基づき、記号glyphの幅をTerminalのセル幅に合わせる.
-
-    W/F (全角) は jp_width にする。それ以外 (曖昧幅・中立を含む) はTerminalが
-    1セルで扱うため en_width に収める。縮小率はadvanceではなくink (bbox) 基準で
-    決めてglyphができるだけ大きく残るようにし、inkをセル中央に寄せる。
-    """
-    if glyph.width == 0:
+def _normalize_symbol_width(
+    glyph: Any, source_width: int, source_em: int, en_width: int, jp_width: int
+) -> None:
+    """合成元glyphの送り幅に基づき、記号の半角・全角幅を設定する."""
+    if source_width == 0:
         return
-    if unicodedata.east_asian_width(chr(glyph.encoding)) in ("W", "F"):
-        glyph.width = jp_width
-        return
-    xmin, _, xmax, _ = glyph.boundingBox()
-    ink_width = xmax - xmin
-    if ink_width > 0:
-        max_ink_width = en_width * SYMBOL_INK_RATIO
-        if ink_width > max_ink_width:
-            shrink = max_ink_width / ink_width
-            glyph.transform(psMat.scale(shrink, shrink))
-            xmin *= shrink
-            xmax *= shrink
-        glyph.transform(psMat.translate((en_width - xmin - xmax) / 2, 0))
-    glyph.width = en_width
+    half_em = source_em / 2
+    glyph.width = (
+        jp_width if abs(source_width - source_em) <= abs(source_width - half_em) else en_width
+    )
 
 
 def _load_jp_font(
@@ -167,6 +149,8 @@ def _load_jp_font(
     """JPフォントを開き、旧 main.py 相当のサイズ調整を行う."""
     font = fontforge.open(str(path))
     old_jp_ascent = font.ascent
+    source_em = font.em
+    source_widths = {glyph.glyphname: glyph.width for glyph in font.glyphs()}
     scale = ascent / old_jp_ascent + jp_scale_offset
 
     font.encoding = properties.ENCODING
@@ -190,7 +174,13 @@ def _load_jp_font(
         elif glyph.encoding in params.FULLWIDTH_CODES_LIST:
             glyph.width = jp_width
         elif 0 <= glyph.encoding <= 0x10FFFF:
-            _normalize_symbol_width(glyph, en_width, jp_width)
+            _normalize_symbol_width(
+                glyph,
+                source_width=source_widths[glyph.glyphname],
+                source_em=source_em,
+                en_width=en_width,
+                jp_width=jp_width,
+            )
     return font
 
 
@@ -250,9 +240,11 @@ def _copy_unicode_mappings(base_font: Any, source_font: Any) -> None:
             base_font.selection.none()
             continue
         code = glyph.unicode
-        if code == -1:
-            continue
         try:
+            if code == -1:
+                if glyph.altuni is not None:
+                    base_font[glyph.glyphname].altuni = glyph.altuni
+                continue
             if glyph.altuni is not None:
                 base_font[code].altuni = glyph.altuni
             base_font[code].unicode = code
