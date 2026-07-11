@@ -58,6 +58,8 @@ class FakeFont:
         self.encoding = ""
         self.selection = FakeSelection()
         self.cleared = 0
+        self.overlap_removed = 0
+        self.strokes: list[tuple[object, ...]] = []
         self._glyphs = glyph_list
 
     def unlinkReferences(self) -> None:
@@ -66,6 +68,14 @@ class FakeFont:
     def clear(self) -> None:
         """選択中 glyph の削除回数を記録する."""
         self.cleared += 1
+
+    def stroke(self, *args: object) -> None:
+        """stroke の呼び出しを記録する."""
+        self.strokes.append(args)
+
+    def removeOverlap(self) -> None:
+        """overlap 削除の呼び出し回数を記録する."""
+        self.overlap_removed += 1
 
     def glyphs(self) -> list[FakeGlyph]:
         """glyph 一覧を返す."""
@@ -189,6 +199,36 @@ def test_load_jp_font_applies_old_proportional_scale(monkeypatch: pytest.MonkeyP
     assert empty.transforms == []
     assert font.selection.selected == [empty]
     assert font.cleared == 1
+
+
+def test_apply_jp_stroke_width_keeps_advance_widths() -> None:
+    """JP stroke補正は輪郭だけを太らせ、advance widthを維持する."""
+    fullwidth = FakeGlyph(0x3042)
+    fullwidth.width = 1849
+    hankaku = FakeGlyph(0xFF61)
+    hankaku.width = 1299
+    empty = FakeGlyph(0x0000, worth_outputting=False)
+    empty.width = 500
+    font = FakeFont(ascent=1638, glyph_list=[fullwidth, hankaku, empty])
+
+    generator._apply_jp_stroke_width(font, 8)
+
+    assert font.strokes == [("circular", 8, "round", "round", ("removeinternal", "cleanup"))]
+    assert font.overlap_removed == 0
+    assert fullwidth.width == 1849
+    assert hankaku.width == 1299
+    assert empty.width == 500
+
+
+def test_apply_jp_stroke_width_skips_zero() -> None:
+    """stroke幅0では何もしない."""
+    glyph = FakeGlyph(0x3042)
+    font = FakeFont(ascent=1638, glyph_list=[glyph])
+
+    generator._apply_jp_stroke_width(font, 0)
+
+    assert font.strokes == []
+    assert font.overlap_removed == 0
 
 
 class FakeIndexableFont:

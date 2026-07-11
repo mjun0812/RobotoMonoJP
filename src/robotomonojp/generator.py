@@ -201,6 +201,21 @@ def _load_en_font(path: Path) -> Any:
     return font
 
 
+def _apply_jp_stroke_width(font: Any, stroke_width: int) -> None:
+    """JP glyphをmerge前に少し太らせる."""
+    if stroke_width == 0:
+        return
+
+    glyph_widths = [(glyph, glyph.width) for glyph in font.glyphs() if glyph.isWorthOutputting]
+
+    font.selection.all()
+    font.stroke("circular", stroke_width, "round", "round", ("removeinternal", "cleanup"))
+    font.selection.none()
+
+    for glyph, width in glyph_widths:
+        glyph.width = width
+
+
 def _scale_nerd_glyphs(font: Any, scales: dict[str, float]) -> None:
     """指定codepointのglyphを、advanceを変えずにink中心基準で拡大縮小する.
 
@@ -296,6 +311,7 @@ def build(request: BuildRequest) -> Path:
             jp_width=cfg.jp_width,
             jp_scale_offset=cfg.jp_scale_offset,
         )
+        _apply_jp_stroke_width(jp_font, cfg.jp_stroke_width)
         jp_font.generate(str(jp_tmp))
         jp_font.close()
 

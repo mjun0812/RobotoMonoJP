@@ -126,6 +126,7 @@ uv run robotomonojp preview dist/{familyname}/{familyname}-Regular.ttf -o previe
 | `en_width`               | ○    | -              | 半角カナ (U+FF61-FF9E) と曖昧幅記号 (`○` `→` など) に設定する幅                                          |
 | `jp_width`               | ○    | -              | 全角 glyph (ひらがな・カタカナ・漢字・全角記号) に設定する幅                                             |
 | `jp_scale_offset`        | ○    | -              | JP フォントのスケール倍率 (`ascent / 元JPフォントのascent`) に加算する offset                            |
+| `jp_stroke_width`        | -    | `0`            | JP glyph を merge 前に FontForge stroke で太らせる幅。`0` なら補正しない                                 |
 | `underline_pos`          | ○    | -              | 下線の位置                                                                                               |
 | `underline_height`       | ○    | -              | 下線の太さ                                                                                               |
 | `os2_ascent`             | ○    | -              | OS/2 winAscent と hhea ascent                                                                            |
