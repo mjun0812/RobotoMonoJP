@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import shutil
 import tempfile
+import unicodedata
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -31,6 +32,7 @@ class BuildRequest:
     style: str  # "Regular" | "Bold" | "Italic" | "BoldItalic"
     version: str
     output_dir: Path
+    mono: bool = False
     apply_nerd_font: bool = True
     nerd_fonts_root: Path = DEFAULT_NERD_FONTS_ROOT
 
@@ -126,15 +128,25 @@ def _new_font(
 
 
 def _normalize_symbol_width(
-    glyph: Any, source_width: int, source_em: int, en_width: int, jp_width: int
+    glyph: Any,
+    source_width: int,
+    source_em: int,
+    en_width: int,
+    jp_width: int,
+    mono: bool = False,
 ) -> None:
     """合成元glyphの送り幅に基づき、記号の半角・全角幅を設定する."""
     if source_width == 0:
         return
     half_em = source_em / 2
-    glyph.width = (
-        jp_width if abs(source_width - source_em) <= abs(source_width - half_em) else en_width
-    )
+    source_fullwidth = abs(source_width - source_em) <= abs(source_width - half_em)
+    is_ambiguous = unicodedata.east_asian_width(chr(glyph.encoding)) == "A"
+    target_width = jp_width if source_fullwidth else en_width
+    if mono and is_ambiguous:
+        if source_fullwidth:
+            glyph.transform(psMat.scale(en_width / jp_width, 1))
+        target_width = en_width
+    glyph.width = target_width
 
 
 def _load_jp_font(
@@ -145,6 +157,7 @@ def _load_jp_font(
     en_width: int,
     jp_width: int,
     jp_scale_offset: float,
+    mono: bool = False,
 ) -> Any:
     """JPフォントを開き、旧 main.py 相当のサイズ調整を行う."""
     font = fontforge.open(str(path))
@@ -180,6 +193,7 @@ def _load_jp_font(
                 source_em=source_em,
                 en_width=en_width,
                 jp_width=jp_width,
+                mono=mono,
             )
     return font
 
@@ -256,7 +270,7 @@ def build(request: BuildRequest) -> Path:
     """1つのstyleを生成し、ttfとotfを出力してttfのpathを返す."""
     cfg = request.config
 
-    familyname = cfg.familyname_for()
+    familyname = cfg.familyname_for(request.mono)
     copyright_text = cfg.metadata.copyright or properties.DEFAULT_COPYRIGHT
     vendor = cfg.metadata.vendor or properties.DEFAULT_VENDOR
 
@@ -302,6 +316,7 @@ def build(request: BuildRequest) -> Path:
             en_width=cfg.en_width,
             jp_width=cfg.jp_width,
             jp_scale_offset=cfg.jp_scale_offset,
+            mono=request.mono,
         )
         _apply_jp_stroke_width(jp_font, cfg.jp_stroke_width)
         jp_font.generate(str(jp_tmp))

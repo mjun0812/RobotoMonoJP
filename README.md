@@ -24,7 +24,7 @@ brew install --cask font-roboto-mono-jp
 | RobotoMonoZenKaku  | Zen Kaku Gothic New | `config/zenkaku.yaml`  |
 | RobotoMonoGenJyuu  | 源柔ゴシック        | `config/genjyuu.yaml`  |
 
-`Regular` / `Bold` / `Italic` / `BoldItalic` の各 style で `ttf` と `otf` を準備しています。
+通常版とConsole向けの`-Mono`版を生成し、それぞれ`Regular` / `Bold` / `Italic` / `BoldItalic`の各styleで`ttf`と`otf`を準備します。
 
 ## セットアップ
 
@@ -40,7 +40,7 @@ make docker-build
 
 ## 生成
 
-`CONFIG` を省略すると、`config/*.yaml` の全 family / 全 style を生成します。
+`CONFIG`を省略すると、`config/*.yaml`の全familyについて通常版と`-Mono`版の全styleを生成します。
 
 ```bash
 make generate
@@ -60,12 +60,13 @@ make generate-regular
 
 ## フォント確認PDF
 
-生成済みフォントでサンプル文字列を PDF に出力できます。
+生成済みフォントでサンプル文字列をPDFに出力できます。通常版と`-Mono`版は`FONT`で選択します。
 `TEXT` を省略すると、英数字・かな・漢字・全角/曖昧幅記号・Nerd Fonts (source別) を網羅したデフォルト文字列を使います。
 
 ```bash
 make print
 make print FONT=dist/{familyname}/{familyname}-Regular.ttf TEXT="Roboto Mono 日本語 123" OUT=preview.pdf
+make print FONT=dist/{familyname}-Mono/{familyname}-Mono-Regular.ttf TEXT="○①→" OUT=preview-mono.pdf
 ```
 
 直接実行する場合は次の形式です。
@@ -84,7 +85,7 @@ make eyecatch
 make eyecatch FONT=dist/{familyname}/{familyname}-Regular.ttf EYECATCH=eyecatch.svg
 ```
 
-`make eyecatch` は `dist` 配下の全 `*-Regular.ttf` を対象に、`docs/images/{familyname}.svg` を生成します。
+`make eyecatch`は`dist`配下の全`*-Regular.ttf`を対象に、`docs/images/{familyname}.svg`を生成します。通常版と`-Mono`版の両方が対象です。
 `FONT` を指定した場合は、そのフォントだけを `EYECATCH` に出力します。
 
 直接実行する場合は次の形式です。
@@ -112,7 +113,7 @@ uv run robotomonojp preview dist/{familyname}/{familyname}-Regular.ttf -o previe
 | キー                     | 必須 | デフォルト     | 説明                                                                                                     |
 | ------------------------ | ---- | -------------- | -------------------------------------------------------------------------------------------------------- |
 | `jp_identifier`          | ○    | -              | family name に使う識別子。先頭大文字の ASCII 英数字、最大16文字。`Mono` は予約されているため不可         |
-| `familyname`             | -    | 命名規則で生成 | family name を明示指定して `RobotoMono{jp_identifier}` の命名規則を上書き                                |
+| `familyname`             | -    | 命名規則で生成 | family name を明示指定して `RobotoMono{jp_identifier}` の命名規則を上書き。Mono版は末尾に`-Mono`を付加   |
 | `metadata.copyright`     | -    | 組み込み値     | フォントに埋め込む copyright 文字列                                                                      |
 | `metadata.vendor`        | -    | `mjun`         | OS/2 テーブルの vendor ID                                                                                |
 | `fonts.en.regular`       | ○    | -              | 英字フォント (Roboto Mono) の Regular のパス                                                             |

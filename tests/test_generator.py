@@ -239,6 +239,24 @@ def test_apply_jp_stroke_width_skips_zero() -> None:
     assert font.overlap_removed == 0
 
 
+def test_normalize_ambiguous_symbol_for_mono(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Mono版では全角の曖昧幅glyphを半角セルへ縮小する."""
+    glyph = FakeGlyph(0x25CB)
+    monkeypatch.setattr(generator, "psMat", FakePsMat)
+
+    generator._normalize_symbol_width(
+        glyph,
+        source_width=1000,
+        source_em=1000,
+        en_width=1299,
+        jp_width=1849,
+        mono=True,
+    )
+
+    assert glyph.transforms == [("scale", 1299 / 1849, 1)]
+    assert glyph.width == 1299
+
+
 class FakeIndexableFont:
     """codepoint indexing だけを持つ font fake."""
 
