@@ -106,11 +106,10 @@ class Config(BaseModel):
             )
         return value
 
-    def familyname_for(self) -> str:
-        """familyname を返す. 明示指定があればそれを、なければ命名規則から組み立てる."""
-        if self.familyname is not None:
-            return self.familyname
-        return f"RobotoMono{self.jp_identifier}"
+    def familyname_for(self, mono: bool = False) -> str:
+        """familynameを返す. mono版では末尾に-Monoを付ける."""
+        familyname = self.familyname or f"RobotoMono{self.jp_identifier}"
+        return f"{familyname}-Mono" if mono else familyname
 
     @model_validator(mode="after")
     def _check_em(self) -> Config:

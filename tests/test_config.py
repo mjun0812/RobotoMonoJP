@@ -39,6 +39,11 @@ def test_familyname_override() -> None:
     assert cfg.familyname_for() == "MyMono"
 
 
+def test_mono_familyname() -> None:
+    cfg = Config.model_validate(VALID_MINIMAL)
+    assert cfg.familyname_for(mono=True) == "RobotoMonoPlex-Mono"
+
+
 @pytest.mark.parametrize(
     "identifier",
     ["plex", "PLEX!", "12Plex", "AVeryLongNameThatExceedsSixteenChars", "Mono", ""],

@@ -48,7 +48,7 @@ os2_ascent: 2146
 os2_descent: 555
 ```
 
-`jp_identifier` は family name (`RobotoMono{jp_identifier}`) に使われる。
+`jp_identifier` は通常版のfamily name (`RobotoMono{jp_identifier}`) に使われる。Console向けMono版には末尾`-Mono`が付く。
 
 - 先頭大文字の ASCII 英数字、最大16文字。
 - `Mono` は予約されているため使えない。
@@ -82,6 +82,8 @@ os2_descent: 555
 | 上記以外で合成元の送り幅が半角EMに近い文字 | `en_width` に設定 |
 | zero-width glyph (結合文字)                | 幅を変更しない    |
 
+通常版はこの判定で曖昧幅文字を全角に維持する。Mono版はEast Asian Widthが`A`の文字を`en_width`へ横方向に縮小し、Terminalの1セルに収める。
+
 Roboto Mono が同じ文字を持つ場合は merge で EN 側が優先されるため、日本語フォント側の glyph は使われない。
 
 フォントを追加したら、次のカテゴリの文字を実際に表示して確認する。
@@ -103,11 +105,12 @@ Roboto Mono が同じ文字を持つ場合は merge で EN 側が優先される
 ## 検証方法
 
 ```bash
-# Regular だけ生成 (Docker)
+# 通常版とMono版のRegularだけ生成 (Docker)
 make generate-regular CONFIG=config/{font}.yaml
 
 # サンプル文字列をPDFで確認 (TEXT省略時は全文字種を網羅したデフォルトを使用)
 make print FONT=dist/{familyname}/{familyname}-Regular.ttf
+make print FONT=dist/{familyname}-Mono/{familyname}-Mono-Regular.ttf
 
 # glyph幅の実測 (fontforge)
 docker run --rm -v "$PWD:/app" -w /app robotomonojp:dev python3 -c "

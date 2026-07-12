@@ -52,7 +52,7 @@ def generate(
         "", "--version-suffix", help="フォントversionに付与するsuffix."
     ),
 ) -> None:
-    """config.yaml から8ファイル (4 style × ttf/otf) を生成する."""
+    """config.yaml から通常版とMono版のフォントを生成する."""
     from .config import load_config
     from .generator import BuildRequest
 
@@ -61,17 +61,20 @@ def generate(
     version = f"{__version__}{version_suffix}"
 
     requests = []
-    for style_name in styles:
-        typer.echo(f"[generate] style={style_name}")
-        requests.append(
-            BuildRequest(
-                config=cfg,
-                style=style_name,
-                version=version,
-                output_dir=output,
-                apply_nerd_font=not no_nerd_font,
+    for mono in (False, True):
+        for style_name in styles:
+            variant = "Mono" if mono else "Default"
+            typer.echo(f"[generate] variant={variant} style={style_name}")
+            requests.append(
+                BuildRequest(
+                    config=cfg,
+                    style=style_name,
+                    version=version,
+                    output_dir=output,
+                    mono=mono,
+                    apply_nerd_font=not no_nerd_font,
+                )
             )
-        )
 
     if jobs == 1 or len(requests) == 1:
         results = [_build_request(request) for request in requests]

@@ -28,9 +28,9 @@ DOCKER_RUN = docker run --rm -v $(PWD):/app -w /app $(IMAGE)
 help:
 	@echo "make submodule-init  # Nerd Fonts submoduleを sparse-checkout 込みで初期化"
 	@echo "make docker-build    # Dockerイメージをbuild"
-	@echo "make generate        # config/*.yaml の全familyを生成"
-	@echo "make generate CONFIG=config/{font}.yaml  # 指定familyだけ生成"
-	@echo "make generate-regular  # config/*.yaml の全familyで Regular だけ生成"
+	@echo "make generate        # config/*.yaml の全familyの通常版/Mono版を生成"
+	@echo "make generate CONFIG=config/{font}.yaml  # 指定familyの通常版/Mono版を生成"
+	@echo "make generate-regular  # config/*.yaml の全familyで通常版/Mono版のRegularだけ生成"
 	@echo "make install         # dist内の全フォントをインストール (macOS/Linux)"
 	@echo "make uninstall       # dist内のfamilyに対応するインストール済みフォントを削除"
 	@echo "make reinstall       # uninstall + install"
