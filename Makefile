@@ -39,6 +39,7 @@ help:
 	@echo "make preview FONT=...  # 静的HTMLプレビューを tmp/preview.html に生成"
 	@echo "make eyecatch        # dist内の全RegularフォントのアイキャッチSVGをdocs/imagesへ生成"
 	@echo "make eyecatch FONT=... EYECATCH=...  # 指定フォントだけアイキャッチSVGを生成"
+	@echo "make release TAG=vX.Y.Z  # バージョン更新、検証、コミット、タグ作成、push"
 	@echo "make lint            # ruff format --check + ruff check"
 	@echo "make typecheck       # ty check"
 	@echo "make format          # ruff format"
@@ -106,6 +107,38 @@ eyecatch:
 			uv run robotomonojp eyecatch "$$font" -o "$(EYECATCH_DIR)/$$family.svg"; \
 		done; \
 	fi
+
+.PHONY: release
+release:
+	@set -eu; \
+	if ! printf '%s\n' "$(TAG)" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$$'; then \
+		echo "usage: make release TAG=vMAJOR.MINOR.PATCH" >&2; \
+		exit 1; \
+	fi; \
+	if ! git diff --cached --quiet; then \
+		echo "staged changes exist; commit or unstage them before release" >&2; \
+		exit 1; \
+	fi; \
+	if git rev-parse -q --verify "refs/tags/$(TAG)" >/dev/null; then \
+		echo "tag already exists: $(TAG)" >&2; \
+		exit 1; \
+	fi; \
+	branch="$$(git branch --show-current)"; \
+	if [ -z "$$branch" ]; then \
+		echo "release requires a branch checkout" >&2; \
+		exit 1; \
+	fi; \
+	make test; \
+	make lint; \
+	version="$${TAG#v}"; \
+	uv version "$$version"; \
+	git add pyproject.toml uv.lock; \
+	if ! git diff --cached --quiet; then \
+		git commit -m "chore: set project version to $$version" \
+			-m "Synchronize package and font metadata with the release tag."; \
+	fi; \
+	git tag -a "$(TAG)" -m "Release $(TAG)"; \
+	git push --atomic origin "$$branch" "$(TAG)"
 
 .PHONY: install
 install:
