@@ -9,6 +9,5 @@ __pycache__/
 dist/
 build/
 *.egg-info/
-uv.lock
 tmp/
 .DS_Store
