@@ -127,6 +127,34 @@ def _new_font(
     return font
 
 
+_CONTROL_OR_SPACE_CATEGORIES = frozenset({"Cc", "Zs", "Zl", "Zp"})
+
+# JP側で主unicodeとaltuniが複数文字を兼務し、かつENフォントとglyph名が衝突するグリフ。
+# mergeFontsでEN側が勝つと全角文字まで半角幅になるため、
+# 全角文字ぶんを衝突しない名前の独立glyphに複製・分離してからmergeする。
+_SPLIT_FULLWIDTH_ALTUNI: dict[str, tuple[int, ...]] = {
+    "uni2003": (0x3000,),  # 全角スペース (EM SPACEとglyph共有)
+    # 全角ハイフンマイナスとMINUS SIGNの共有glyphは、JPフォントによって
+    # glyph名が "minus" (LINE Seed JP) と "uniFF0D" (IBM Plex Sans JP) に分かれる.
+    # 両方登録することで両フォントに対応する.
+    # NotoSansJPは "uniFF0D" glyphを持つがaltuniを持たない (主unicode=U+FF0D
+    # で単独マップ) ため、altuni判定で自然にスキップされる.
+    "minus": (0xFF0D,),
+    "uniFF0D": (0xFF0D,),
+}
+
+
+def _is_control_or_space(code: int) -> bool:
+    """ENフォント側と重複しうる制御・スペース系のcodepointか判定する.
+
+    RobotoMono (Latin-1範囲) に存在しうる制御・空白文字のみを対象にする.
+    U+3000 (全角スペース) など全角幅を持つべき文字はこの範囲外なので対象にならない.
+    """
+    if not 0 <= code <= 0xFF:
+        return False
+    return unicodedata.category(chr(code)) in _CONTROL_OR_SPACE_CATEGORIES
+
+
 def _normalize_symbol_width(
     glyph: Any,
     source_width: int,
@@ -180,6 +208,14 @@ def _load_jp_font(
             font.clear()
             continue
 
+        if _is_control_or_space(glyph.encoding):
+            # 制御文字やスペース系はENフォント側の幅・字形をそのまま使わせる.
+            # clear()だけだとencodingスロットが空glyphのまま残り、
+            # mergeFonts後にJP側の(意図しない)幅で上書きされてしまうため、
+            # removeGlyphでglyphそのものをJPフォントから除去する.
+            font.removeGlyph(glyph)
+            continue
+
         glyph.transform(psMat.scale(scale, scale))
 
         if glyph.encoding in params.HANKAKU_KANA_LIST:
@@ -195,6 +231,43 @@ def _load_jp_font(
                 jp_width=jp_width,
                 mono=mono,
             )
+
+    # JP側で主unicodeとaltuniが複数文字を兼務し、ENフォントとglyph名が衝突する
+    # グリフについて、全角文字ぶんを衝突しない名前の独立glyphへ複製・分離する.
+    # 対象グリフが無い、またはaltuniに対象codepointが含まれない場合は何もしない
+    # (bizud/genjyuu/zenkaku等、別名glyphで全角スペースを持つJPフォントには無関係).
+    for src_name, codepoints in _SPLIT_FULLWIDTH_ALTUNI.items():
+        try:
+            src_glyph = font[src_name]
+        except TypeError:
+            continue
+        altuni = src_glyph.altuni
+        if not altuni:
+            continue
+
+        for cp in codepoints:
+            if not altuni or not any(t[0] == cp for t in altuni):
+                continue
+
+            new_name = f"jpglyph.{cp:04X}"
+            src_width = src_glyph.width
+            font.selection.select(src_name)
+            font.copy()
+
+            # createChar()より先にsrc側のaltuniからcpを外し、該当codepointを
+            # 「誰にも属していない」状態にしてから新規glyphを作る必要がある.
+            # そうしないとcreateChar()がaltuni経由で既存glyph(=src自身)を
+            # 返してしまい、新規glyphとして分離できない.
+            altuni = tuple(t for t in altuni if t[0] != cp) or None
+            src_glyph.altuni = altuni
+
+            font.createChar(cp, new_name)
+            font.selection.select(new_name)
+            font.paste()
+            new_glyph = font[new_name]
+            new_glyph.width = src_width
+            new_glyph.altuni = None
+
     return font
 
 

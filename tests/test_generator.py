@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import cast
 
 import pytest
 
@@ -65,6 +66,8 @@ class FakeFont:
         self.strokes: list[tuple[object, ...]] = []
         self._glyphs = glyph_list
         self.reencoded_codepoints: dict[str, int] = {}
+        self.removed_glyphs: list[FakeGlyph] = []
+        self._clipboard: tuple[int, tuple[float, float, float, float]] = (0, (0.0, 0.0, 0.0, 0.0))
 
     @property
     def encoding(self) -> str:
@@ -86,6 +89,10 @@ class FakeFont:
         """選択中 glyph の削除回数を記録する."""
         self.cleared += 1
 
+    def removeGlyph(self, glyph: FakeGlyph) -> None:
+        """glyph 自体の削除を記録する."""
+        self.removed_glyphs.append(glyph)
+
     def stroke(self, *args: object) -> None:
         """stroke の呼び出しを記録する."""
         self.strokes.append(args)
@@ -97,6 +104,31 @@ class FakeFont:
     def glyphs(self) -> list[FakeGlyph]:
         """glyph 一覧を返す."""
         return self._glyphs
+
+    def __getitem__(self, key: int | str) -> FakeGlyph:
+        """glyph名またはunicodeでglyphを取得する. 実物同様、無ければTypeError."""
+        for glyph in self._glyphs:
+            if key == glyph.glyphname or key == glyph.unicode:
+                return glyph
+        raise TypeError(f"no such glyph: {key!r}")
+
+    def createChar(self, cp: int, name: str) -> FakeGlyph:
+        """cp/name を持つ新規glyphを作り、glyph一覧に追加する."""
+        glyph = FakeGlyph(cp)
+        glyph.glyphname = name
+        glyph.unicode = cp
+        self._glyphs.append(glyph)
+        return glyph
+
+    def copy(self) -> None:
+        """選択中glyphの内容 (width/bbox) をクリップボードへコピーする."""
+        glyph = self[cast(str, self.selection.selected[-1])]
+        self._clipboard = (glyph.width, glyph.bbox)
+
+    def paste(self) -> None:
+        """クリップボードの内容を選択中glyphへ貼り付ける."""
+        glyph = self[cast(str, self.selection.selected[-1])]
+        glyph.width, glyph.bbox = self._clipboard
 
 
 class FakeFontForge:
@@ -153,6 +185,16 @@ def test_load_jp_font_applies_old_proportional_scale(monkeypatch: pytest.MonkeyP
     wide_symbol.width = 1000
     zero_width = FakeGlyph(0x0300)  # combining mark
     zero_width.width = 0
+    space = FakeGlyph(0x0020)  # SPACE. JP側が非標準幅を持つと ENフォントと幅がズレる
+    space.width = 345
+    control = FakeGlyph(0x000D)  # CR
+    control.width = 345
+    ideographic_space = FakeGlyph(
+        0x2003
+    )  # 主unicode=EM SPACE. altuniで全角スペース(U+3000)を兼務する
+    ideographic_space.glyphname = "uni2003"
+    ideographic_space.altuni = ((0x3000, -1, 0),)
+    ideographic_space.width = 1000
     font = FakeFont(
         ascent=880,
         glyph_list=[
@@ -164,6 +206,9 @@ def test_load_jp_font_applies_old_proportional_scale(monkeypatch: pytest.MonkeyP
             narrow_symbol,
             wide_symbol,
             zero_width,
+            space,
+            control,
+            ideographic_space,
         ],
     )
     font.reencoded_codepoints[ambiguous.glyphname] = 0x25CB
@@ -205,8 +250,89 @@ def test_load_jp_font_applies_old_proportional_scale(monkeypatch: pytest.MonkeyP
     assert zero_width.width == 0
 
     assert empty.transforms == []
-    assert font.selection.selected == [empty]
+    # "uni2003"/"jpglyph.3000" は幅正規化ループ後、複製・分離処理で選択される
+    # (ideographic_space=uni2003 が altuni に U+3000 を持つため).
+    assert font.selection.selected == [empty, "uni2003", "jpglyph.3000"]
     assert font.cleared == 1
+
+    # ENフォントと重複しうる制御・スペース系のglyphはJP側から完全に除去し、EN側の幅を使わせる.
+    assert font.removed_glyphs == [space, control]
+    assert space.transforms == []
+    assert control.transforms == []
+
+    # uni2003 (EM SPACE) は Zs カテゴリだが除去対象にせず、幅は正規化ループでjp_widthになる
+    # (mergeFonts時はEN側のuni2003が優先されるため、この幅自体は最終フォントには残らない).
+    assert ideographic_space.transforms == [("scale", expected_scale, expected_scale)]
+    assert ideographic_space.width == 1849
+
+
+def test_load_jp_font_splits_fullwidth_altuni_glyphs(monkeypatch: pytest.MonkeyPatch) -> None:
+    """uni2003/minus は全角側 (altuni) だけを衝突しない独立glyphへ複製・分離する."""
+    ideographic_space = FakeGlyph(
+        0x2003
+    )  # 主unicode=EM SPACE. altuniで全角スペース(U+3000)を兼務する
+    ideographic_space.glyphname = "uni2003"
+    ideographic_space.altuni = ((0x3000, -1, 0),)
+    ideographic_space.width = 1000
+
+    fullwidth_minus = FakeGlyph(
+        0x2212
+    )  # 主unicode=MINUS SIGN. altuniで全角ハイフンマイナス(U+FF0D)を兼務する
+    fullwidth_minus.glyphname = "minus"
+    fullwidth_minus.altuni = ((0xFF0D, -1, 0),)
+    fullwidth_minus.width = 1000
+
+    font = FakeFont(ascent=880, glyph_list=[ideographic_space, fullwidth_minus])
+    FakeFontForge.opened = font
+    monkeypatch.setattr(generator, "fontforge", FakeFontForge)
+    monkeypatch.setattr(generator, "psMat", FakePsMat)
+
+    result = generator._load_jp_font(
+        Path("LINESeedJP-Regular.ttf"),
+        ascent=1638,
+        descent=410,
+        em=2048,
+        en_width=1299,
+        jp_width=1849,
+        jp_scale_offset=0.10,
+    )
+
+    split_space = result["jpglyph.3000"]
+    assert split_space.unicode == 0x3000
+    assert split_space.width == 1849
+    assert split_space.altuni is None
+    assert ideographic_space.altuni is None  # 複製元からは分離したcodepointが外れる
+
+    split_minus = result["jpglyph.FF0D"]
+    assert split_minus.unicode == 0xFF0D
+    assert split_minus.width == 1849
+    assert split_minus.altuni is None
+    assert fullwidth_minus.altuni is None
+
+
+def test_load_jp_font_split_skips_when_glyph_or_altuni_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """分離対象のglyphが無い、またはaltuniを持たないJPフォントには何もしない."""
+    unrelated = FakeGlyph(0x3042)
+    minus_without_altuni = FakeGlyph(0x2212)  # altuniを持たない (bizud等が該当)
+    minus_without_altuni.glyphname = "minus"
+    font = FakeFont(ascent=880, glyph_list=[unrelated, minus_without_altuni])
+    FakeFontForge.opened = font
+    monkeypatch.setattr(generator, "fontforge", FakeFontForge)
+    monkeypatch.setattr(generator, "psMat", FakePsMat)
+
+    result = generator._load_jp_font(
+        Path("BIZUDPGothic-Regular.ttf"),
+        ascent=1638,
+        descent=410,
+        em=2048,
+        en_width=1299,
+        jp_width=1849,
+        jp_scale_offset=0.10,
+    )
+
+    assert [glyph.glyphname for glyph in result.glyphs()] == ["uni3042", "minus"]
 
 
 def test_apply_jp_stroke_width_keeps_advance_widths() -> None:
