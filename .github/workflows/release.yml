@@ -196,12 +196,25 @@ jobs:
           Path(path).write_text("".join(lines), encoding="utf-8")
           PY
           cd "$tap_dir"
+
+          # mise の bootstrap.packages で tapped cask を解決するために,
+          # tap の HEAD/api/cask/<token>.json に Homebrew API v2 形式の metadata を配信する.
+          # 更新済みの Casks/*.rb を brew に読ませて自動生成する.
+          export PATH="/home/linuxbrew/.linuxbrew/bin:$PATH"
+          brew_taps_root="$(brew --repository)/Library/Taps/mjun0812"
+          mkdir -p "$brew_taps_root"
+          ln -sfn "$tap_dir" "$brew_taps_root/homebrew-roboto-mono-jp"
+          mkdir -p "$tap_dir/api/cask"
+          brew info --cask --json=v2 mjun0812/roboto-mono-jp/font-roboto-mono-jp \
+            | jq '.casks[0] | .installed = null | .installed_time = null | .outdated = false' \
+            > "$tap_dir/api/cask/font-roboto-mono-jp.json"
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           if git diff --quiet; then
             echo "cask already at $version, skip"
             exit 0
           fi
-          git add Casks/font-roboto-mono-jp.rb
+          git add Casks/font-roboto-mono-jp.rb api/cask/font-roboto-mono-jp.json
           git commit -m "chore: bump font-roboto-mono-jp to $version"
           git push origin HEAD:main
