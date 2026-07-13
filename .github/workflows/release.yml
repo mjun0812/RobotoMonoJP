@@ -153,16 +153,47 @@ jobs:
           tap_dir="$(mktemp -d)"
           git clone "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/mjun0812/homebrew-roboto-mono-jp.git" "$tap_dir"
           cask="$tap_dir/Casks/font-roboto-mono-jp.rb"
-          python3 - "$cask" "$version" "$BUNDLE_SHA256" <<'PY'
+          python3 - "$cask" "$version" "$BUNDLE_SHA256" bundle <<'PY'
           import re
           import sys
           from pathlib import Path
 
-          path, version, sha = sys.argv[1], sys.argv[2], sys.argv[3]
+          path, version, sha, bundle_dir = sys.argv[1:5]
+
+          # bundle 内の TTF 一覧から font "..." 行を動的に生成する.
+          # 家系名 → variant (Default → Mono) → style (Regular → Bold → Italic → BoldItalic) の順に並べる.
+          name_re = re.compile(
+              r"^RobotoMono(?P<family>[A-Za-z]+?)(?P<mono>-Mono)?"
+              r"-(?P<style>Regular|Bold|Italic|BoldItalic)\.ttf$"
+          )
+          style_order = {"Regular": 0, "Bold": 1, "Italic": 2, "BoldItalic": 3}
+
+          def sort_key(name):
+              m = name_re.match(name)
+              if not m:
+                  raise ValueError(f"unexpected font filename: {name!r}")
+              return (m["family"], 0 if not m["mono"] else 1, style_order[m["style"]])
+
+          font_names = sorted(
+              (p.name for p in Path(bundle_dir).glob("*.ttf")),
+              key=sort_key,
+          )
+          if not font_names:
+              raise SystemExit(f"no ttf files found in {bundle_dir}")
+
           text = Path(path).read_text(encoding="utf-8")
           text = re.sub(r'version "[^"]+"', f'version "{version}"', text, count=1)
           text = re.sub(r'sha256 "[^"]+"', f'sha256 "{sha}"', text, count=1)
-          Path(path).write_text(text, encoding="utf-8")
+
+          # 既存の "font \"...\"" 行をブロック単位で新しい一覧に置き換える.
+          lines = text.splitlines(keepends=True)
+          font_line_indices = [i for i, ln in enumerate(lines) if ln.lstrip().startswith('font "')]
+          if not font_line_indices:
+              raise SystemExit("no existing font lines to replace in cask")
+          first, last = font_line_indices[0], font_line_indices[-1]
+          new_font_lines = [f'  font "{name}"\n' for name in font_names]
+          lines[first : last + 1] = new_font_lines
+          Path(path).write_text("".join(lines), encoding="utf-8")
           PY
           cd "$tap_dir"
           git config user.name "github-actions[bot]"
