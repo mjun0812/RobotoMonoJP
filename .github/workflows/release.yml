@@ -5,15 +5,15 @@ on:
     tags:
       - "v*"
 
+permissions:
+  contents: read
+
 jobs:
-  release:
+  prepare:
     runs-on: ubuntu-latest
-    # HOMEBREW_TAP_TOKEN は environment secret として homebrew-tap に登録する.
-    # environment を通じて解決されるため、他 workflow から誤って参照されない。
-    # 未設定の場合は Bump Homebrew tap step が skip されるだけで release 自体は成功する。
-    environment: homebrew-tap
-    permissions:
-      contents: write
+    outputs:
+      image: ${{ steps.image.outputs.image }}
+      configs: ${{ steps.configs.outputs.configs }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -29,6 +29,51 @@ jobs:
             exit 1
           fi
 
+      - name: Compute GHCR image tag
+        id: image
+        run: |
+          repo_lower="$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')"
+          echo "image=ghcr.io/${repo_lower}:${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: List font configs
+        id: configs
+        run: |
+          configs="$(printf '%s\n' config/*.yaml | xargs -n1 basename -s .yaml | jq -R . | jq -sc .)"
+          echo "configs=$configs" >> "$GITHUB_OUTPUT"
+
+  build-image:
+    needs: prepare
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: false
+
+      - name: Docker build
+        run: docker build -t "${{ needs.prepare.outputs.image }}" .
+
+      - name: Push image to GHCR
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker push "${{ needs.prepare.outputs.image }}"
+
+  generate:
+    needs: [prepare, build-image]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    strategy:
+      matrix:
+        config: ${{ fromJson(needs.prepare.outputs.configs) }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: false
+
       - name: Init nerd-fonts submodule (sparse)
         run: |
           git submodule init vendor/nerd-fonts
@@ -36,15 +81,37 @@ jobs:
           git -C vendor/nerd-fonts sparse-checkout set --skip-checks \
             font-patcher src/glyphs bin/scripts/name_parser bin/scripts/braille
 
-      - name: Docker build
-        run: docker build -t robotomonojp:release .
+      - name: Pull generator image
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker pull "${{ needs.prepare.outputs.image }}"
 
       - name: Generate fonts
         run: |
-          for config in config/*.yaml; do
-            docker run --rm -v "$PWD:/app" -w /app robotomonojp:release \
-              python3 -m robotomonojp generate -c "$config" -o dist
-          done
+          docker run --rm -v "$PWD:/app" -w /app "${{ needs.prepare.outputs.image }}" \
+            python3 -m robotomonojp generate -c "config/${{ matrix.config }}.yaml" -o dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.config }}
+          path: dist
+
+  release:
+    needs: generate
+    runs-on: ubuntu-latest
+    # HOMEBREW_TAP_TOKEN は environment secret として homebrew-tap に登録する.
+    # environment を通じて解決されるため、他 workflow から誤って参照されない。
+    # 未設定の場合は Bump Homebrew tap step が skip されるだけで release 自体は成功する。
+    environment: homebrew-tap
+    permissions:
+      contents: write
+    steps:
+      - name: Download generated fonts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: dist-*
+          path: dist
+          merge-multiple: true
 
       - name: Bundle TTFs for Homebrew cask
         id: bundle
