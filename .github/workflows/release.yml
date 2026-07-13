@@ -106,6 +106,12 @@ jobs:
     permissions:
       contents: write
     steps:
+      # gh release create が repo owner/name の解決に .git を参照するため、
+      # release assetのuploadだけでもcheckoutが必要.
+      - uses: actions/checkout@v6
+        with:
+          submodules: false
+
       - name: Download generated fonts
         uses: actions/download-artifact@v4
         with:
