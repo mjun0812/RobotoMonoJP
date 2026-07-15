@@ -172,7 +172,14 @@ def _normalize_symbol_width(
     target_width = jp_width if source_fullwidth else en_width
     if mono and is_ambiguous:
         if source_fullwidth:
-            glyph.transform(psMat.scale(en_width / jp_width, 1))
+            factor = en_width / jp_width
+            xmin, ymin, xmax, ymax = glyph.boundingBox()
+            if xmax > xmin:
+                center_x = (xmin + xmax) / 2
+                center_y = (ymin + ymax) / 2
+                glyph.transform(psMat.translate(-center_x, -center_y))
+                glyph.transform(psMat.scale(factor, factor))
+                glyph.transform(psMat.translate(en_width / 2, center_y))
         target_width = en_width
     glyph.width = target_width
 

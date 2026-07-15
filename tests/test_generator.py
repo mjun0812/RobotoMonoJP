@@ -366,8 +366,9 @@ def test_apply_jp_stroke_width_skips_zero() -> None:
 
 
 def test_normalize_ambiguous_symbol_for_mono(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Mono版では全角の曖昧幅glyphを半角セルへ縮小する."""
+    """Mono版では全角の曖昧幅glyphをbbox中心基準で縦横同倍率に縮小する."""
     glyph = FakeGlyph(0x25CB)
+    glyph.bbox = (200.0, 100.0, 1600.0, 1500.0)
     monkeypatch.setattr(generator, "psMat", FakePsMat)
 
     generator._normalize_symbol_width(
@@ -379,7 +380,14 @@ def test_normalize_ambiguous_symbol_for_mono(monkeypatch: pytest.MonkeyPatch) ->
         mono=True,
     )
 
-    assert glyph.transforms == [("scale", 1299 / 1849, 1)]
+    center_x = (200.0 + 1600.0) / 2
+    center_y = (100.0 + 1500.0) / 2
+    factor = 1299 / 1849
+    assert glyph.transforms == [
+        ("translate", -center_x, -center_y),
+        ("scale", factor, factor),
+        ("translate", 1299 / 2, center_y),
+    ]
     assert glyph.width == 1299
 
 
