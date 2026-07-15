@@ -89,9 +89,14 @@ jobs:
               df -h /
 
           - name: Init nerd-fonts submodule (sparse)
+            # --depth=1 で shallow fetch. nerd-fonts は blob 込みで数GB あるため full clone だと
+            # submodule step が数分〜10分規模で遅く, 並列化しても実質のクリティカルパスになる.
+            # GitHub は uploadpack.allowReachableSHA1InWant=true なので pin sha が branch HEAD に
+            # なくても fetch できる. CI では pin された1 commit を read-only に使うだけで history
+            # や blame は不要なので shallow で十分.
             run: |
               git submodule init vendor/nerd-fonts
-              git -c protocol.file.allow=always submodule update --checkout vendor/nerd-fonts
+              git -c protocol.file.allow=always submodule update --depth=1 --checkout vendor/nerd-fonts
               git -C vendor/nerd-fonts sparse-checkout set --skip-checks \
                 font-patcher src/glyphs bin/scripts/name_parser bin/scripts/braille
 
