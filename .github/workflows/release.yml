@@ -74,35 +74,38 @@ jobs:
         with:
           submodules: false
 
-      # GitHub-hosted runner の / は 14GB 程度しか空きがなく,
-      # Docker image + Nerd Fonts submodule + 生成物 で "No space left on device" になる.
-      # 使わないpre-installedパッケージを削除して余裕を確保する.
-      - name: Free disk space
-        run: |
-          df -h /
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
-            /usr/local/share/boost /opt/hostedtoolcache/CodeQL
-          sudo docker image prune -af || true
-          df -h /
+      # 準備stepは互いに独立 (system dir削除 / workspace内のgit操作 / docker daemon操作) なので
+      # `parallel:` (2026-06 GA) で同時実行して wall-clock を短縮する.
+      # docker image prune -af は同時実行中の docker pull と race する (pull 直後の image が
+      # 未参照とみなされ削除される) ため, ここでは行わず残す rm -rf のみで容量を確保する.
+      # GitHub-hosted runner の / は 14GB 程度しか空きがなく, Docker image + Nerd Fonts
+      # submodule + 生成物 で "No space left on device" になるための対策.
+      - parallel:
+          - name: Free disk space
+            run: |
+              df -h /
+              sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+                /usr/local/share/boost /opt/hostedtoolcache/CodeQL
+              df -h /
 
-      - name: Init nerd-fonts submodule (sparse)
-        run: |
-          git submodule init vendor/nerd-fonts
-          git -c protocol.file.allow=always submodule update --checkout vendor/nerd-fonts
-          git -C vendor/nerd-fonts sparse-checkout set --skip-checks \
-            font-patcher src/glyphs bin/scripts/name_parser bin/scripts/braille
+          - name: Init nerd-fonts submodule (sparse)
+            run: |
+              git submodule init vendor/nerd-fonts
+              git -c protocol.file.allow=always submodule update --checkout vendor/nerd-fonts
+              git -C vendor/nerd-fonts sparse-checkout set --skip-checks \
+                font-patcher src/glyphs bin/scripts/name_parser bin/scripts/braille
 
-      - name: Pull generator image
-        run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-          docker pull "${{ needs.prepare.outputs.image }}"
+          - name: Pull generator image
+            run: |
+              echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+              docker pull "${{ needs.prepare.outputs.image }}"
 
       - name: Generate fonts
         run: |
           docker run --rm -v "$PWD:/app" -w /app "${{ needs.prepare.outputs.image }}" \
             python3 -m robotomonojp generate -c "config/${{ matrix.config }}.yaml" -o dist
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: dist-${{ matrix.config }}
           path: dist
@@ -124,7 +127,7 @@ jobs:
           submodules: false
 
       - name: Download generated fonts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: dist-*
           path: dist
